@@ -27,10 +27,10 @@
 
 .hero-banner h1 {
   margin-top: 0.75rem;
-  font-size: clamp(2.2rem, 5vw, 4.2rem);
-  line-height: 0.98;
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  line-height: 1.02;
   letter-spacing: -0.04em;
-  max-width: 11ch;
+  max-width: 14ch;
 }
 
 .hero-copy {
@@ -46,9 +46,7 @@
 }
 
 .hero-stat,
-.panel,
-.metric-card,
-.event-item {
+.panel {
   border-radius: 22px;
   border: 1px solid rgba(16, 35, 28, 0.08);
 }
@@ -61,8 +59,6 @@
 
 .hero-stat span,
 .panel-grid-meta span,
-.metric-card span,
-.event-item span,
 .chart-labels span {
   display: block;
   font-size: 0.85rem;
@@ -132,6 +128,10 @@
   margin-top: 1rem;
 }
 
+.dashboard-lower-compact {
+  grid-template-columns: 1.5fr 0.85fr;
+}
+
 .panel {
   padding: 1.3rem;
   background: rgba(255, 252, 245, 0.84);
@@ -145,8 +145,7 @@
   gap: 1rem;
 }
 
-.panel h2,
-.event-panel h2 {
+.panel h2 {
   font-size: 1.45rem;
   line-height: 1.05;
   color: #10231c;
@@ -182,7 +181,8 @@
 }
 
 .temperature-band,
-.battery-shell {
+.battery-shell,
+.performance-shell {
   margin: 1rem 0 0.9rem;
   width: 100%;
   height: 0.95rem;
@@ -192,7 +192,8 @@
 }
 
 .temperature-band-fill,
-.battery-fill {
+.battery-fill,
+.performance-fill {
   height: 100%;
   border-radius: inherit;
 }
@@ -205,6 +206,10 @@
   background: linear-gradient(90deg, #d35d47, #f2c66c 45%, #2e8b62);
 }
 
+.performance-fill {
+  background: linear-gradient(90deg, #0f5f4e, #2fa77f);
+}
+
 .panel-grid-meta,
 .stat-row {
   display: grid;
@@ -213,8 +218,7 @@
 }
 
 .panel-grid-meta strong,
-.stat-row strong,
-.metric-card strong {
+.stat-row strong {
   display: block;
   margin-top: 0.25rem;
   font-size: 1rem;
@@ -224,38 +228,6 @@
 .panel-copy {
   margin-top: 0.9rem;
   color: #4e645d;
-}
-
-.alert-panel {
-  min-height: 100%;
-}
-
-.alert-active {
-  background:
-    linear-gradient(180deg, rgba(255, 240, 234, 0.96), rgba(255, 250, 247, 0.88));
-}
-
-.alert-clear {
-  background:
-    linear-gradient(180deg, rgba(236, 248, 242, 0.96), rgba(255, 252, 245, 0.88));
-}
-
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.85rem;
-  margin-top: 1rem;
-}
-
-.metric-card {
-  padding: 1rem;
-  background: rgba(247, 244, 234, 0.65);
-}
-
-.metric-card small {
-  display: block;
-  margin-top: 0.35rem;
-  color: #6b7d76;
 }
 
 .chart-panel {
@@ -294,19 +266,14 @@
   stroke: #0f5f4e;
 }
 
-.chart-line-battery {
-  stroke: #d39a1a;
-}
-
 .chart-legend,
-.chart-labels,
-.event-list {
+.chart-labels {
   display: grid;
   gap: 0.65rem;
 }
 
 .chart-legend {
-  grid-template-columns: repeat(2, max-content);
+  grid-template-columns: max-content;
   margin-top: 1rem;
 }
 
@@ -328,33 +295,38 @@
   background: #0f5f4e;
 }
 
-.legend-battery::before {
-  background: #d39a1a;
-}
-
 .chart-labels {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 1rem;
 }
 
-.event-panel {
-  margin-top: 1rem;
+.summary-panel {
+  display: flex;
+  flex-direction: column;
 }
 
-.event-list {
-  margin-top: 1rem;
-}
-
-.event-item {
+.summary-grid {
   display: grid;
-  grid-template-columns: 8rem 1fr;
+  grid-template-columns: 1fr;
   gap: 1rem;
-  padding: 0.9rem 1rem;
-  background: rgba(247, 244, 234, 0.72);
+  margin-top: 1rem;
 }
 
-.event-item p {
-  color: #31463f;
+.summary-grid span {
+  display: block;
+  font-size: 0.85rem;
+  color: #6b7d76;
+}
+
+.summary-grid strong {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1.05rem;
+  color: #10231c;
+}
+
+.energy-meta {
+  margin-top: 1rem;
 }
 
 @media (max-width: 1080px) {
@@ -381,11 +353,10 @@
 
   .dashboard-grid,
   .dashboard-lower,
-  .metrics-grid,
   .panel-grid-meta,
   .stat-row,
   .chart-labels,
-  .event-item {
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import {
   HISTORY_LIMIT,
   IDEAL_TEMP,
-  METRIC_CARDS,
   MODE_LABELS,
   ROUTE_POINTS,
   SAFE_MAX_TEMP,
@@ -51,29 +50,6 @@ function createInitialState() {
     ],
     lastUpdated: new Date(),
   }
-}
-
-function createMetrics(state) {
-  const backupHours = estimateBackupHours(state.batteryLevel)
-  const stability = calculateStability(state.temperature)
-  const energy = state.mode === 'failure' ? 284 : state.mode === 'recovery' ? 248 : 214
-  const carbon = state.mode === 'failure' ? '53%' : '61%'
-
-  return METRIC_CARDS.map((card) => {
-    if (card.key === 'stability') {
-      return { ...card, value: `${stability} deg C deviation` }
-    }
-
-    if (card.key === 'backup') {
-      return { ...card, value: `${backupHours} hrs remaining` }
-    }
-
-    if (card.key === 'energy') {
-      return { ...card, value: `${energy} Wh/day` }
-    }
-
-    return { ...card, value: carbon }
-  })
 }
 
 function appendEvent(eventLog, message) {
@@ -176,6 +152,38 @@ export default function useSimulation() {
   const temperatureStatus = deriveTemperatureStatus(state.temperature)
   const batteryStatus = deriveBatteryStatus(state.batteryLevel)
   const backupHours = estimateBackupHours(state.batteryLevel)
+  const energyUsage =
+    state.mode === 'failure'
+      ? 284
+      : state.mode === 'recovery'
+        ? 248
+        : state.coolingActive
+          ? 226
+          : 172
+  const coolingPerformance = state.coolingActive
+    ? round(
+        state.mode === 'failure'
+          ? 96
+          : state.mode === 'recovery'
+            ? 84
+            : 52 + Math.max(0, state.temperature - IDEAL_TEMP) * 14,
+        0,
+      )
+    : 14
+  const coolingLabel =
+    state.mode === 'failure'
+      ? 'Maximum response'
+      : state.mode === 'recovery'
+        ? 'Recovery load'
+        : state.coolingActive
+          ? 'Regulated cooling'
+          : 'Standby monitoring'
+  const systemHealth =
+    temperatureStatus.tone === 'critical'
+      ? 'Critical'
+      : temperatureStatus.tone === 'warning'
+        ? 'Watch'
+        : 'Nominal'
   const alert =
     temperatureStatus.tone === 'safe'
       ? null
@@ -231,8 +239,11 @@ export default function useSimulation() {
     temperatureStatus,
     batteryStatus,
     backupHours,
+    energyUsage,
+    coolingPerformance,
+    coolingLabel,
+    systemHealth,
     alert,
-    metrics: createMetrics(state),
     toggleSimulation,
     triggerFailure,
     restoreSystem,

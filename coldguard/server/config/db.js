@@ -64,6 +64,22 @@ async function initializeDatabase() {
     })
 
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS temperature_sensor_readings (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        source VARCHAR(32) NOT NULL,
+        temperature DECIMAL(5,2) NOT NULL,
+        ambient_temperature DECIMAL(5,2) NOT NULL,
+        mode VARCHAR(32) NOT NULL,
+        route_label VARCHAR(128) NOT NULL,
+        battery_level DECIMAL(5,2) NOT NULL,
+        solar_input DECIMAL(5,2) NOT NULL,
+        cooling_active BOOLEAN NOT NULL,
+        action_taken VARCHAR(64) NOT NULL
+      )
+    `)
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS simulation_snapshots (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

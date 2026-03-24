@@ -1,8 +1,7 @@
-import AlertBox from '../components/dashboard/AlertBox'
 import BatteryCard from '../components/dashboard/BatteryCard'
+import CoolingPerformanceCard from '../components/dashboard/CoolingPerformanceCard'
 import ControlButtons from '../components/dashboard/ControlButtons'
-import CoolingStatus from '../components/dashboard/CoolingStatus'
-import MetricsPanel from '../components/dashboard/MetricsPanel'
+import EnergyUsageCard from '../components/dashboard/EnergyUsageCard'
 import TemperatureCard from '../components/dashboard/TemperatureCard'
 import TemperatureChart from '../components/dashboard/TemperatureChart'
 import { useSimulationContext } from '../context/SimulationContext'
@@ -15,18 +14,18 @@ function Dashboard() {
     <main className="dashboard-shell">
       <section className="hero-banner">
         <div>
-          <p className="eyebrow">ColdGuard demo dashboard</p>
-          <h1>Portable cold chain digital twin for vaccine-safe delivery</h1>
+          <p className="eyebrow">ColdGuard operations dashboard</p>
+          <h1>Cold chain control view for cargo safety and energy performance</h1>
           <p className="hero-copy">
-            Simulated live telemetry for temperature control, power reserve, alerts, and
-            evaluation metrics.
+            Live operational view of cargo temperature, battery utilization, cooling load,
+            and energy usage for the simulation box.
           </p>
         </div>
 
         <div className="hero-meta">
           <div className="hero-stat">
-            <span>Mode</span>
-            <strong>{simulation.modeLabel}</strong>
+            <span>System status</span>
+            <strong>{simulation.systemHealth}</strong>
           </div>
           <div className="hero-stat">
             <span>Last updated</span>
@@ -50,39 +49,47 @@ function Dashboard() {
         <BatteryCard
           batteryLevel={simulation.batteryLevel}
           backupHours={simulation.backupHours}
-          solarInput={simulation.solarInput}
           batteryStatus={simulation.batteryStatus}
         />
-        <CoolingStatus
-          coolingActive={simulation.coolingActive}
-          modeLabel={simulation.modeLabel}
-          ambientTemperature={simulation.ambientTemperature}
-          location={simulation.location}
+        <EnergyUsageCard
+          energyUsage={simulation.energyUsage}
+          solarInput={simulation.solarInput}
         />
-        <AlertBox alert={simulation.alert} />
+        <CoolingPerformanceCard
+          coolingActive={simulation.coolingActive}
+          coolingPerformance={simulation.coolingPerformance}
+          coolingLabel={simulation.coolingLabel}
+        />
       </section>
 
-      <section className="dashboard-lower">
+      <section className="dashboard-lower dashboard-lower-compact">
         <TemperatureChart history={simulation.history} />
-        <MetricsPanel metrics={simulation.metrics} />
-      </section>
-
-      <section className="panel event-panel">
-        <div className="panel-head">
-          <div>
-            <p className="eyebrow">Operations log</p>
-            <h2>Recent system events</h2>
+        <section className="panel summary-panel">
+          <div className="panel-head">
+            <div>
+              <p className="eyebrow">System summary</p>
+              <h2>Current operating state</h2>
+            </div>
           </div>
-        </div>
-
-        <div className="event-list">
-          {simulation.eventLog.map((event) => (
-            <article className="event-item" key={`${event.time}-${event.message}`}>
-              <span>{event.time}</span>
-              <p>{event.message}</p>
-            </article>
-          ))}
-        </div>
+          <div className="summary-grid">
+            <div>
+              <span>Transport mode</span>
+              <strong>{simulation.modeLabel}</strong>
+            </div>
+            <div>
+              <span>Cooling state</span>
+              <strong>{simulation.coolingActive ? 'ON' : 'Standby'}</strong>
+            </div>
+            <div>
+              <span>Ambient temperature</span>
+              <strong>{simulation.ambientTemperature.toFixed(1)} deg C</strong>
+            </div>
+            <div>
+              <span>Route point</span>
+              <strong>{simulation.location}</strong>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
   )

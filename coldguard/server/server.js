@@ -30,6 +30,7 @@ app.get('/', (_req, res) => {
       'GET /api/simulation/events',
       'GET /api/analytics/summary',
       'GET /api/reports/temperature',
+      'POST /api/simulation/sensor-reading',
       'POST /api/simulation/tick',
       'POST /api/simulation/failure',
       'POST /api/simulation/recovery',

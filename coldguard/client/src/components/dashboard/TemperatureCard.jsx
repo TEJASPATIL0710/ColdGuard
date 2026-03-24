@@ -18,7 +18,7 @@ function TemperatureCard({ temperature, status }) {
       </div>
 
       <div className="stat-row">
-        <span>Safe band</span>
+        <span>Cargo safe range</span>
         <strong>2 deg C to 8 deg C</strong>
       </div>
       <p className="panel-copy">{status.message}</p>

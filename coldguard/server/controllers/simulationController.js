@@ -69,6 +69,17 @@ async function getTemperatureReport(req, res) {
   res.json(await simulationService.getTemperatureReport(hours))
 }
 
+async function ingestSensorReading(req, res) {
+  const { temperature, ambientTemperature, source } = req.body
+  res.json(
+    await simulationService.ingestSensorReading({
+      temperature,
+      ambientTemperature,
+      source,
+    }),
+  )
+}
+
 module.exports = {
   getHealth,
   getSimulation,
@@ -81,4 +92,5 @@ module.exports = {
   getRecentEvents,
   getAnalyticsSummary,
   getTemperatureReport,
+  ingestSensorReading,
 }

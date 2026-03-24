@@ -58,6 +58,43 @@ async function saveSnapshot(snapshot) {
   return true
 }
 
+async function saveSensorReading(reading) {
+  const pool = getPool()
+
+  if (!pool) {
+    return false
+  }
+
+  await pool.execute(
+    `
+      INSERT INTO temperature_sensor_readings (
+        source,
+        temperature,
+        ambient_temperature,
+        mode,
+        route_label,
+        battery_level,
+        solar_input,
+        cooling_active,
+        action_taken
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      reading.source,
+      reading.temperature,
+      reading.ambientTemperature,
+      reading.mode,
+      reading.location,
+      reading.batteryLevel,
+      reading.solarInput,
+      reading.coolingActive,
+      reading.actionTaken,
+    ],
+  )
+
+  return true
+}
+
 async function saveEvent(event) {
   const pool = getPool()
 
@@ -90,13 +127,16 @@ async function getTelemetryHistory({ limit = 120, hours } = {}) {
   let query = `
     SELECT
       recorded_at AS recordedAt,
+      source,
       temperature,
+      ambient_temperature AS ambientTemperature,
       battery_level AS batteryLevel,
       solar_input AS solarInput,
       mode,
       route_label AS location,
-      cooling_active AS coolingActive
-    FROM simulation_snapshots
+      cooling_active AS coolingActive,
+      action_taken AS actionTaken
+    FROM temperature_sensor_readings
   `
   const params = []
   const safeLimit = normalizeLimit(limit, 120)
@@ -158,7 +198,7 @@ async function getAnalyticsSummary(hours = 24) {
         ROUND(AVG(solar_input), 2) AS avgSolarInput,
         SUM(CASE WHEN temperature < 2 OR temperature > 8 THEN 1 ELSE 0 END) AS excursionCount,
         ROUND(AVG(CASE WHEN cooling_active THEN 1 ELSE 0 END) * 100, 2) AS coolingDutyCycle
-      FROM simulation_snapshots
+      FROM temperature_sensor_readings
       WHERE recorded_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? HOUR)
     `,
     [Number(hours)],
@@ -194,8 +234,9 @@ async function getTemperatureReport(hours = 24) {
         ROUND(MIN(temperature), 2) AS minTemperature,
         ROUND(MAX(temperature), 2) AS maxTemperature,
         ROUND(AVG(battery_level), 2) AS avgBatteryLevel,
+        ROUND(AVG(ambient_temperature), 2) AS avgAmbientTemperature,
         COUNT(*) AS sampleCount
-      FROM simulation_snapshots
+      FROM temperature_sensor_readings
       WHERE recorded_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? HOUR)
       GROUP BY DATE_FORMAT(recorded_at, '%Y-%m-%d %H:00:00')
       ORDER BY bucket ASC
@@ -207,13 +248,14 @@ async function getTemperatureReport(hours = 24) {
     `
       SELECT
         recorded_at AS recordedAt,
+        source,
         temperature,
         route_label AS location,
-        alert_tone AS alertTone,
-        alert_title AS alertTitle
-      FROM simulation_snapshots
+        action_taken AS actionTaken,
+        cooling_active AS coolingActive
+      FROM temperature_sensor_readings
       WHERE recorded_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? HOUR)
-        AND alert_tone IS NOT NULL
+        AND (temperature < 2 OR temperature > 8 OR action_taken <> 'monitoring')
       ORDER BY recorded_at DESC
       LIMIT 50
     `,
@@ -231,6 +273,7 @@ async function getTemperatureReport(hours = 24) {
 
 module.exports = {
   saveSnapshot,
+  saveSensorReading,
   saveEvent,
   getTelemetryHistory,
   getRecentEvents,

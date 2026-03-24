@@ -2,7 +2,6 @@ function TemperatureChart({ history }) {
   const points = history.slice(-12)
 
   const temperatures = points.map((point) => point.temperature)
-  const batteries = points.map((point) => point.batteryLevel)
   const maxTemp = Math.max(...temperatures, 10.5)
   const minTemp = Math.min(...temperatures, 2)
 
@@ -16,27 +15,24 @@ function TemperatureChart({ history }) {
       .join(' ')
 
   const temperaturePoints = getPointString(temperatures, minTemp, maxTemp)
-  const batteryPoints = getPointString(batteries, 0, 100)
 
   return (
     <section className="panel chart-panel">
       <div className="panel-head">
         <div>
-          <p className="eyebrow">Live telemetry</p>
-          <h2>Temperature and battery trend</h2>
+          <p className="eyebrow">Temperature history</p>
+          <h2>Cargo temperature trend</h2>
         </div>
       </div>
 
       <div className="chart-frame">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           <polyline className="chart-line chart-line-temp" points={temperaturePoints} />
-          <polyline className="chart-line chart-line-battery" points={batteryPoints} />
         </svg>
       </div>
 
       <div className="chart-legend">
-        <span className="legend-temp">Temperature</span>
-        <span className="legend-battery">Battery</span>
+        <span className="legend-temp">Cargo temperature</span>
       </div>
 
       <div className="chart-labels">

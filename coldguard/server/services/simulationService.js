@@ -14,6 +14,8 @@ const {
 } = require('../utils/calculations')
 
 const TICK_MS = 1500
+const PREEMPTIVE_COOLING_TEMP = 5.5
+const COOLING_STANDBY_TEMP = 4.3
 
 const ROUTE_POINTS = [
   'Hub Dispatch',
@@ -49,18 +51,28 @@ function createHistorySeed() {
 }
 
 function createInitialState() {
+  const createdAt = new Date().toISOString()
+
   return {
     mode: 'stable',
     isRunning: true,
     temperature: 4.1,
+    lastSensorReading: {
+      source: 'simulated',
+      temperature: 4.1,
+      ambientTemperature: 31,
+      actionTaken: 'monitoring',
+      recordedAt: createdAt,
+    },
     batteryLevel: 96,
     solarInput: 68,
     coolingActive: false,
     ambientTemperature: 31,
+    coolingReason: 'Monitoring safe sensor band.',
     routeIndex: 0,
     history: createHistorySeed(),
     eventLog: [createLogEntry('ColdGuard digital twin started in stable transport mode.')],
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: createdAt,
   }
 }
 
@@ -73,6 +85,64 @@ async function pushEvent(message, level = 'info') {
   state.eventLog = [event, ...state.eventLog].slice(0, 8)
   await simulationRepository.saveEvent(event)
   return event
+}
+
+function determineCoolingDecision(sensorTemperature, mode, wasCoolingActive) {
+  if (mode === 'failure') {
+    return {
+      coolingActive: true,
+      nextMode: 'failure',
+      actionTaken: 'forced_cooling',
+      coolingReason: 'Failure mode keeps cooling locked on while the box is unstable.',
+    }
+  }
+
+  if (sensorTemperature > SAFE_MAX_TEMP) {
+    return {
+      coolingActive: true,
+      nextMode: 'recovery',
+      actionTaken: wasCoolingActive ? 'cooling_maintained' : 'cooling_activated',
+      coolingReason: 'Sensor reading exceeded safe range, so cooling was engaged.',
+    }
+  }
+
+  if (sensorTemperature >= PREEMPTIVE_COOLING_TEMP) {
+    return {
+      coolingActive: true,
+      nextMode: 'stable',
+      actionTaken: wasCoolingActive ? 'cooling_maintained' : 'cooling_activated',
+      coolingReason: 'Sensor temperature is rising, so cooling is running preventively.',
+    }
+  }
+
+  if (sensorTemperature <= COOLING_STANDBY_TEMP) {
+    return {
+      coolingActive: false,
+      nextMode: 'stable',
+      actionTaken: wasCoolingActive ? 'cooling_standby' : 'monitoring',
+      coolingReason: 'Sensor temperature is back under control, so cooling is on standby.',
+    }
+  }
+
+  return {
+    coolingActive: wasCoolingActive,
+    nextMode: mode === 'recovery' ? 'recovery' : 'stable',
+    actionTaken: wasCoolingActive ? 'cooling_maintained' : 'monitoring',
+    coolingReason: wasCoolingActive
+      ? 'Cooling remains active while the sensor reading settles.'
+      : 'Sensor reading remains in the monitored operating band.',
+  }
+}
+
+function createSensorMeasurement(temperature, ambientTemperature, source = 'simulated') {
+  const sensorNoise = (Math.random() - 0.5) * 0.2
+
+  return {
+    source,
+    temperature: round(temperature + sensorNoise, 1),
+    ambientTemperature: round(ambientTemperature, 1),
+    recordedAt: new Date().toISOString(),
+  }
 }
 
 function buildMetrics() {
@@ -134,21 +204,95 @@ async function persistStateSnapshot() {
   await simulationRepository.saveSnapshot(serializeState())
 }
 
+async function persistSensorReading(sensorReading, actionTaken, coolingActive) {
+  await simulationRepository.saveSensorReading({
+    source: sensorReading.source,
+    temperature: sensorReading.temperature,
+    ambientTemperature: sensorReading.ambientTemperature,
+    mode: state.mode,
+    location: ROUTE_POINTS[state.routeIndex],
+    batteryLevel: state.batteryLevel,
+    solarInput: state.solarInput,
+    coolingActive,
+    actionTaken,
+  })
+}
+
+async function applySensorReading(sensorReading) {
+  const previousCooling = state.coolingActive
+  const previousMode = state.mode
+  const previousTemperature = state.temperature
+  const decision = determineCoolingDecision(
+    sensorReading.temperature,
+    state.mode,
+    previousCooling,
+  )
+
+  state = {
+    ...state,
+    mode: decision.nextMode,
+    temperature: sensorReading.temperature,
+    ambientTemperature: sensorReading.ambientTemperature,
+    coolingActive: decision.coolingActive,
+    coolingReason: decision.coolingReason,
+    lastSensorReading: {
+      ...sensorReading,
+      actionTaken: decision.actionTaken,
+    },
+    history: [
+      ...state.history,
+      {
+        label: formatClock(new Date(sensorReading.recordedAt)),
+        temperature: sensorReading.temperature,
+        batteryLevel: state.batteryLevel,
+      },
+    ].slice(-24),
+    lastUpdated: sensorReading.recordedAt,
+  }
+
+  await persistSensorReading(sensorReading, decision.actionTaken, decision.coolingActive)
+
+  if (!previousCooling && decision.coolingActive) {
+    await pushEvent(
+      `Cooling activated from sensor reading ${sensorReading.temperature} deg C.`,
+      sensorReading.temperature > SAFE_MAX_TEMP ? 'warning' : 'info',
+    )
+  }
+
+  if (previousCooling && !decision.coolingActive) {
+    await pushEvent(
+      `Cooling returned to standby after sensor reading ${sensorReading.temperature} deg C.`,
+    )
+  }
+
+  if (sensorReading.temperature > SAFE_MAX_TEMP && previousTemperature <= SAFE_MAX_TEMP) {
+    await pushEvent(
+      `Temperature excursion detected from sensor input ${sensorReading.temperature} deg C.`,
+      'warning',
+    )
+  }
+
+  if (previousMode === 'recovery' && decision.nextMode === 'stable' && sensorReading.temperature <= 4.6) {
+    await pushEvent('Temperature restored to vaccine-safe range. System returned to stable transit.')
+  }
+
+  return decision
+}
+
 async function stepSimulation() {
   const routeIndex = (state.routeIndex + 1) % ROUTE_POINTS.length
-  let nextMode = state.mode
   let temperature = state.temperature
   let batteryLevel = state.batteryLevel
   let solarInput = state.solarInput
-  let coolingActive = state.coolingActive
   let ambientTemperature = state.ambientTemperature
 
   if (state.mode === 'stable') {
-    const target = IDEAL_TEMP + (Math.random() - 0.5) * 0.5
+    const target = state.coolingActive
+      ? IDEAL_TEMP + (Math.random() - 0.5) * 0.2
+      : IDEAL_TEMP + 0.8 + (Math.random() - 0.5) * 0.6
     temperature = nudgeTowards(state.temperature, target, 0.3)
     batteryLevel = clamp(state.batteryLevel - 0.15, 0, 100)
     solarInput = round(64 + Math.sin(Date.now() / 5000) * 8, 0)
-    coolingActive = temperature > 4.8
     ambientTemperature = round(30 + Math.random() * 2, 1)
   }
 
@@ -156,48 +300,25 @@ async function stepSimulation() {
     temperature = nudgeTowards(state.temperature, 10.8, 0.9)
     batteryLevel = clamp(state.batteryLevel - 0.85, 0, 100)
     solarInput = round(18 + Math.random() * 8, 0)
-    coolingActive = true
     ambientTemperature = round(35 + Math.random() * 3, 1)
-
-    if (temperature > SAFE_MAX_TEMP && state.temperature <= SAFE_MAX_TEMP) {
-      await pushEvent(
-        'Thermal excursion detected. Cooling override engaged and alert escalated.',
-        'warning',
-      )
-    }
   }
 
   if (state.mode === 'recovery') {
-    temperature = nudgeTowards(state.temperature, 4.3, 1.2)
+    temperature = nudgeTowards(state.temperature, 4.3, state.coolingActive ? 1.2 : 0.6)
     batteryLevel = clamp(state.batteryLevel - 0.25, 0, 100)
     solarInput = round(58 + Math.random() * 10, 0)
-    coolingActive = true
     ambientTemperature = round(29 + Math.random() * 2, 1)
-
-    if (temperature <= 4.6) {
-      nextMode = 'stable'
-      await pushEvent('Temperature restored to vaccine-safe range. System returned to stable transit.')
-    }
-  }
-
-  const nextPoint = {
-    label: formatClock(new Date()),
-    temperature: round(temperature, 1),
-    batteryLevel: round(batteryLevel, 1),
   }
 
   state = {
     ...state,
-    mode: nextMode,
-    temperature: nextPoint.temperature,
-    batteryLevel: nextPoint.batteryLevel,
+    batteryLevel: round(batteryLevel, 1),
     solarInput,
-    coolingActive,
-    ambientTemperature,
     routeIndex,
-    history: [...state.history, nextPoint].slice(-24),
-    lastUpdated: new Date().toISOString(),
   }
+
+  const sensorReading = createSensorMeasurement(temperature, ambientTemperature)
+  await applySensorReading(sensorReading)
 
   await persistStateSnapshot()
   return serializeState()
@@ -209,7 +330,6 @@ function getSimulationState() {
 
 async function triggerFailure() {
   state.mode = 'failure'
-  state.coolingActive = true
   state.lastUpdated = new Date().toISOString()
   await pushEvent('Failure scenario injected: seal leak and solar drop simulated.', 'warning')
   await persistStateSnapshot()
@@ -218,7 +338,6 @@ async function triggerFailure() {
 
 async function triggerRecovery() {
   state.mode = 'recovery'
-  state.coolingActive = true
   state.lastUpdated = new Date().toISOString()
   await pushEvent('Recovery command issued. Peltier boost and PCM support rebalancing cargo bay.')
   await persistStateSnapshot()
@@ -258,6 +377,25 @@ async function getTemperatureReport(hours) {
 
 async function getRecentEvents(limit) {
   return simulationRepository.getRecentEvents(limit)
+}
+
+async function ingestSensorReading({ temperature, ambientTemperature, source = 'manual' }) {
+  if (!Number.isFinite(Number(temperature))) {
+    throw new Error('A numeric temperature sensor reading is required.')
+  }
+
+  const sensorReading = {
+    source,
+    temperature: round(Number(temperature), 1),
+    ambientTemperature: Number.isFinite(Number(ambientTemperature))
+      ? round(Number(ambientTemperature), 1)
+      : state.ambientTemperature,
+    recordedAt: new Date().toISOString(),
+  }
+
+  await applySensorReading(sensorReading)
+  await persistStateSnapshot()
+  return serializeState()
 }
 
 async function initializePersistence() {
@@ -306,6 +444,7 @@ module.exports = {
   getAnalyticsSummary,
   getTemperatureReport,
   getRecentEvents,
+  ingestSensorReading,
   initializePersistence,
   startEngine,
   stopEngine,
