@@ -61,11 +61,28 @@ function createInitialState() {
       source: 'simulated',
       temperature: 4.1,
       ambientTemperature: 31,
+      batteryLevel: 96,
+      batteryIsCharging: false,
+      batteryStatus: 'SIMULATED',
+      batteryEstimatedHours: 69.1,
+      solarInput: 68,
+      solarPower: 0,
+      solarIsGenerating: false,
+      solarStatus: 'SIMULATED',
       actionTaken: 'monitoring',
       recordedAt: createdAt,
     },
     batteryLevel: 96,
+    batterySource: 'simulated',
+    batteryIsCharging: false,
+    batteryStatusCode: 'SIMULATED',
+    batteryEstimatedHours: 69.1,
+    sensorFeedActive: false,
+    sensorFeedSource: null,
     solarInput: 68,
+    solarPower: 0,
+    solarIsGenerating: false,
+    solarStatus: 'SIMULATED',
     coolingActive: false,
     ambientTemperature: 31,
     coolingReason: 'Monitoring safe sensor band.',
@@ -145,6 +162,10 @@ function createSensorMeasurement(temperature, ambientTemperature, source = 'simu
   }
 }
 
+function isExternalSensorSource(source) {
+  return Boolean(source) && source !== 'simulated'
+}
+
 function buildMetrics() {
   const backupHours = estimateBackupHours(state.batteryLevel)
   const stability = calculateStability(state.temperature)
@@ -204,15 +225,23 @@ async function persistStateSnapshot() {
   await simulationRepository.saveSnapshot(serializeState())
 }
 
-async function persistSensorReading(sensorReading, actionTaken, coolingActive) {
+async function persistSensorReading(sensorReading, actionTaken, coolingActive, batteryLevel) {
   await simulationRepository.saveSensorReading({
+    recordedAt: sensorReading.recordedAt,
     source: sensorReading.source,
     temperature: sensorReading.temperature,
     ambientTemperature: sensorReading.ambientTemperature,
     mode: state.mode,
     location: ROUTE_POINTS[state.routeIndex],
-    batteryLevel: state.batteryLevel,
+    batteryLevel: batteryLevel,
+    batteryIsCharging: Boolean(sensorReading.batteryIsCharging),
+    batteryStatus: sensorReading.batteryStatus || null,
+    batteryEstimatedHours:
+      Number.isFinite(sensorReading.batteryEstimatedHours) ? sensorReading.batteryEstimatedHours : null,
     solarInput: state.solarInput,
+    solarPower: Number.isFinite(sensorReading.solarPower) ? sensorReading.solarPower : null,
+    solarIsGenerating: Boolean(sensorReading.solarIsGenerating),
+    solarStatus: sensorReading.solarStatus || null,
     coolingActive,
     actionTaken,
   })
@@ -222,21 +251,53 @@ async function applySensorReading(sensorReading) {
   const previousCooling = state.coolingActive
   const previousMode = state.mode
   const previousTemperature = state.temperature
+  const externalSensorActive = isExternalSensorSource(sensorReading.source)
   const decision = determineCoolingDecision(
     sensorReading.temperature,
     state.mode,
     previousCooling,
   )
 
+  const updatedBatteryLevel = Number.isFinite(sensorReading.batteryLevel)
+    ? sensorReading.batteryLevel
+    : state.batteryLevel
+  const batterySource = Number.isFinite(sensorReading.batteryLevel)
+    ? 'sensor'
+    : state.batterySource
+  const updatedSolarInput = Number.isFinite(sensorReading.solarInput)
+    ? sensorReading.solarInput
+    : state.solarInput
+
   state = {
     ...state,
     mode: decision.nextMode,
     temperature: sensorReading.temperature,
     ambientTemperature: sensorReading.ambientTemperature,
+    batteryLevel: updatedBatteryLevel,
+    batterySource,
+    batteryIsCharging:
+      typeof sensorReading.batteryIsCharging === 'boolean'
+        ? sensorReading.batteryIsCharging
+        : state.batteryIsCharging,
+    batteryStatusCode: sensorReading.batteryStatus || state.batteryStatusCode,
+    batteryEstimatedHours: Number.isFinite(sensorReading.batteryEstimatedHours)
+      ? sensorReading.batteryEstimatedHours
+      : state.batteryEstimatedHours,
+    sensorFeedActive: externalSensorActive ? true : state.sensorFeedActive,
+    sensorFeedSource: externalSensorActive ? sensorReading.source : state.sensorFeedSource,
+    solarInput: updatedSolarInput,
+    solarPower: Number.isFinite(sensorReading.solarPower) ? sensorReading.solarPower : state.solarPower,
+    solarIsGenerating:
+      typeof sensorReading.solarIsGenerating === 'boolean'
+        ? sensorReading.solarIsGenerating
+        : state.solarIsGenerating,
+    solarStatus: sensorReading.solarStatus || state.solarStatus,
     coolingActive: decision.coolingActive,
     coolingReason: decision.coolingReason,
     lastSensorReading: {
       ...sensorReading,
+      batteryLevel: updatedBatteryLevel,
+      solarInput: updatedSolarInput,
       actionTaken: decision.actionTaken,
     },
     history: [
@@ -244,13 +305,16 @@ async function applySensorReading(sensorReading) {
       {
         label: formatClock(new Date(sensorReading.recordedAt)),
         temperature: sensorReading.temperature,
-        batteryLevel: state.batteryLevel,
+        batteryLevel: updatedBatteryLevel,
       },
     ].slice(-24),
     lastUpdated: sensorReading.recordedAt,
   }
 
-  await persistSensorReading(sensorReading, decision.actionTaken, decision.coolingActive)
+  const updatedBatteryForPersist = Number.isFinite(sensorReading.batteryLevel)
+    ? sensorReading.batteryLevel
+    : state.batteryLevel
+  await persistSensorReading(sensorReading, decision.actionTaken, decision.coolingActive, updatedBatteryForPersist)
 
   if (!previousCooling && decision.coolingActive) {
     await pushEvent(
@@ -280,32 +344,43 @@ async function applySensorReading(sensorReading) {
 }
 
 async function stepSimulation() {
+  if (state.sensorFeedActive) {
+    return serializeState()
+  }
+
   const routeIndex = (state.routeIndex + 1) % ROUTE_POINTS.length
   let temperature = state.temperature
   let batteryLevel = state.batteryLevel
   let solarInput = state.solarInput
   let ambientTemperature = state.ambientTemperature
+  const shouldSimulateBattery = state.batterySource !== 'sensor'
 
   if (state.mode === 'stable') {
     const target = state.coolingActive
       ? IDEAL_TEMP + (Math.random() - 0.5) * 0.2
       : IDEAL_TEMP + 0.8 + (Math.random() - 0.5) * 0.6
     temperature = nudgeTowards(state.temperature, target, 0.3)
-    batteryLevel = clamp(state.batteryLevel - 0.15, 0, 100)
+    batteryLevel = shouldSimulateBattery
+      ? clamp(state.batteryLevel - 0.15, 0, 100)
+      : state.batteryLevel
     solarInput = round(64 + Math.sin(Date.now() / 5000) * 8, 0)
     ambientTemperature = round(30 + Math.random() * 2, 1)
   }
 
   if (state.mode === 'failure') {
     temperature = nudgeTowards(state.temperature, 10.8, 0.9)
-    batteryLevel = clamp(state.batteryLevel - 0.85, 0, 100)
+    batteryLevel = shouldSimulateBattery
+      ? clamp(state.batteryLevel - 0.85, 0, 100)
+      : state.batteryLevel
     solarInput = round(18 + Math.random() * 8, 0)
     ambientTemperature = round(35 + Math.random() * 3, 1)
   }
 
   if (state.mode === 'recovery') {
     temperature = nudgeTowards(state.temperature, 4.3, state.coolingActive ? 1.2 : 0.6)
-    batteryLevel = clamp(state.batteryLevel - 0.25, 0, 100)
+    batteryLevel = shouldSimulateBattery
+      ? clamp(state.batteryLevel - 0.25, 0, 100)
+      : state.batteryLevel
     solarInput = round(58 + Math.random() * 10, 0)
     ambientTemperature = round(29 + Math.random() * 2, 1)
   }
@@ -313,7 +388,11 @@ async function stepSimulation() {
   state = {
     ...state,
     batteryLevel: round(batteryLevel, 1),
+    batteryEstimatedHours: estimateBackupHours(round(batteryLevel, 1)),
     solarInput,
+    solarPower: 0,
+    solarIsGenerating: solarInput > 0,
+    solarStatus: solarInput > 0 ? 'GENERATING' : 'NO_POWER',
     routeIndex,
   }
 
@@ -367,6 +446,14 @@ async function getTelemetryHistory(options) {
   return simulationRepository.getTelemetryHistory(options)
 }
 
+async function getRecentSensorReadings(limit) {
+  return simulationRepository.getRecentSensorReadings(limit)
+}
+
+async function getLatestSensorSources(limit) {
+  return simulationRepository.getLatestSensorSources(limit)
+}
+
 async function getAnalyticsSummary(hours) {
   return simulationRepository.getAnalyticsSummary(hours)
 }
@@ -379,7 +466,36 @@ async function getRecentEvents(limit) {
   return simulationRepository.getRecentEvents(limit)
 }
 
-async function ingestSensorReading({ temperature, ambientTemperature, source = 'manual' }) {
+function normalizeRecordedAt(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return new Date(value).toISOString()
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = new Date(value)
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString()
+    }
+  }
+
+  return new Date().toISOString()
+}
+
+async function ingestSensorReading({
+  temperature,
+  ambientTemperature,
+  source = 'manual',
+  batteryLevel,
+  batteryIsCharging,
+  batteryStatus,
+  batteryEstimatedHours,
+  solarInput,
+  solarPower,
+  solarIsGenerating,
+  solarStatus,
+  recordedAt,
+}) {
   if (!Number.isFinite(Number(temperature))) {
     throw new Error('A numeric temperature sensor reading is required.')
   }
@@ -390,7 +506,19 @@ async function ingestSensorReading({ temperature, ambientTemperature, source = '
     ambientTemperature: Number.isFinite(Number(ambientTemperature))
       ? round(Number(ambientTemperature), 1)
       : state.ambientTemperature,
-    recordedAt: new Date().toISOString(),
+    batteryLevel: Number.isFinite(Number(batteryLevel)) ? round(Number(batteryLevel), 1) : undefined,
+    batteryIsCharging:
+      typeof batteryIsCharging === 'boolean' ? batteryIsCharging : undefined,
+    batteryStatus: typeof batteryStatus === 'string' ? batteryStatus : undefined,
+    batteryEstimatedHours: Number.isFinite(Number(batteryEstimatedHours))
+      ? round(Number(batteryEstimatedHours), 1)
+      : undefined,
+    solarInput: Number.isFinite(Number(solarInput)) ? round(Number(solarInput), 1) : undefined,
+    solarPower: Number.isFinite(Number(solarPower)) ? round(Number(solarPower), 1) : undefined,
+    solarIsGenerating:
+      typeof solarIsGenerating === 'boolean' ? solarIsGenerating : undefined,
+    solarStatus: typeof solarStatus === 'string' ? solarStatus : undefined,
+    recordedAt: normalizeRecordedAt(recordedAt),
   }
 
   await applySensorReading(sensorReading)
@@ -441,6 +569,8 @@ module.exports = {
   resetSimulation,
   setRunning,
   getTelemetryHistory,
+  getRecentSensorReadings,
+  getLatestSensorSources,
   getAnalyticsSummary,
   getTemperatureReport,
   getRecentEvents,

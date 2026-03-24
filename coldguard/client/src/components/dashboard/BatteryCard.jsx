@@ -1,4 +1,10 @@
-function BatteryCard({ batteryLevel, backupHours, batteryStatus }) {
+function BatteryCard({
+  batteryLevel,
+  backupHours,
+  batteryStatus,
+  batteryIsCharging,
+  batteryStatusCode,
+}) {
   return (
     <article className="panel">
       <div className="panel-head">
@@ -15,12 +21,20 @@ function BatteryCard({ batteryLevel, backupHours, batteryStatus }) {
 
       <div className="panel-grid-meta">
         <div>
-          <span>Available backup</span>
-          <strong>{backupHours.toFixed(1)} hrs</strong>
+          <span>Battery state</span>
+          <strong>{batteryStatusCode || batteryStatus.label}</strong>
         </div>
         <div>
-          <span>Battery state</span>
-          <strong>{batteryStatus.label}</strong>
+          <span>Charge mode</span>
+          <strong>{batteryIsCharging ? 'Charging' : 'Discharging'}</strong>
+        </div>
+        <div>
+          <span>Live battery level</span>
+          <strong>{batteryLevel.toFixed(1)}%</strong>
+        </div>
+        <div>
+          <span>Available backup</span>
+          <strong>{backupHours ? `${backupHours.toFixed(1)} hrs` : 'N/A'}</strong>
         </div>
       </div>
     </article>

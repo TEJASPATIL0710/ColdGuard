@@ -1,181 +1,172 @@
 import { useEffect, useState } from 'react'
+import { IDEAL_TEMP, TICK_MS } from '../utils/constants'
 import {
-  HISTORY_LIMIT,
-  IDEAL_TEMP,
-  MODE_LABELS,
-  ROUTE_POINTS,
-  SAFE_MAX_TEMP,
-  TICK_MS,
-} from '../utils/constants'
-import {
-  calculateStability,
-  clamp,
   deriveBatteryStatus,
   deriveTemperatureStatus,
   estimateBackupHours,
   formatTime,
-  nudgeTowards,
   round,
 } from '../utils/calculations'
-
-function createHistorySeed() {
-  const now = Date.now()
-
-  return Array.from({ length: 12 }, (_, index) => {
-    const offset = (11 - index) * TICK_MS
-    return {
-      label: formatTime(new Date(now - offset)),
-      temperature: round(4 + Math.sin(index / 2) * 0.2, 1),
-      batteryLevel: round(96 - index * 0.2, 1),
-    }
-  })
-}
+import {
+  getSimulation,
+  getSimulationHistory,
+  getSensorReadings,
+  restoreSimulationSystem,
+  setSimulationRunning,
+  triggerFailureScenario,
+} from '../services/api'
 
 function createInitialState() {
   return {
     mode: 'stable',
+    modeLabel: 'Connecting',
     isRunning: true,
-    temperature: 4.1,
-    batteryLevel: 96,
-    solarInput: 68,
+    temperature: 0,
+    batteryLevel: 0,
+    batteryIsCharging: false,
+    batteryStatusCode: null,
+    batteryEstimatedHours: null,
+    solarInput: 0,
+    solarPower: 0,
+    solarIsGenerating: false,
+    solarStatus: null,
     coolingActive: false,
-    ambientTemperature: 31,
-    routeIndex: 0,
-    history: createHistorySeed(),
-    eventLog: [
-      {
-        time: formatTime(new Date()),
-        message: 'ColdGuard digital twin started in stable transport mode.',
-      },
-    ],
+    ambientTemperature: 0,
+    location: 'Waiting for backend',
+    history: [],
+    recentSensorReadings: [],
+    activeSensors: [],
+    activeSensorCount: 0,
+    lastSensorReading: null,
+    sensorFeedActive: false,
+    sensorFeedSource: null,
+    eventLog: [],
     lastUpdated: new Date(),
+    error: null,
+    temperatureStatus: deriveTemperatureStatus(0),
+    batteryStatus: deriveBatteryStatus(0),
+    backupHours: 0,
+    energyUsage: 0,
+    coolingPerformance: 0,
+    coolingLabel: 'Waiting for backend',
+    systemHealth: 'Connecting',
+    alert: null,
   }
 }
 
-function appendEvent(eventLog, message) {
-  return [
-    {
-      time: formatTime(new Date()),
-      message,
-    },
-    ...eventLog,
-  ].slice(0, 6)
+function normalizeHistory(history = []) {
+  return history.map((point) => ({
+    label: formatTime(new Date(point.recordedAt)),
+    recordedAt: point.recordedAt,
+    temperature: Number(point.temperature),
+    batteryLevel: Number(point.batteryLevel),
+  }))
 }
 
-function stepSimulation(current) {
-  const routeIndex = (current.routeIndex + 1) % ROUTE_POINTS.length
-
-  let nextMode = current.mode
-  let temperature = current.temperature
-  let batteryLevel = current.batteryLevel
-  let solarInput = current.solarInput
-  let coolingActive = current.coolingActive
-  let ambientTemperature = current.ambientTemperature
-  let eventLog = current.eventLog
-
-  if (current.mode === 'stable') {
-    const target = IDEAL_TEMP + (Math.random() - 0.5) * 0.5
-    temperature = nudgeTowards(current.temperature, target, 0.3)
-    batteryLevel = clamp(current.batteryLevel - 0.15, 0, 100)
-    solarInput = round(64 + Math.sin(Date.now() / 5000) * 8, 0)
-    coolingActive = temperature > 4.8
-    ambientTemperature = round(30 + Math.random() * 2, 1)
+function normalizeSensorReading(reading) {
+  if (!reading) {
+    return null
   }
 
-  if (current.mode === 'failure') {
-    temperature = nudgeTowards(current.temperature, 10.8, 0.9)
-    batteryLevel = clamp(current.batteryLevel - 0.85, 0, 100)
-    solarInput = round(18 + Math.random() * 8, 0)
-    coolingActive = true
-    ambientTemperature = round(35 + Math.random() * 3, 1)
-
-    if (temperature > SAFE_MAX_TEMP && current.temperature <= SAFE_MAX_TEMP) {
-      eventLog = appendEvent(
-        eventLog,
-        'Thermal excursion detected. Cooling override engaged and alert escalated.',
-      )
-    }
-  }
-
-  if (current.mode === 'recovery') {
-    temperature = nudgeTowards(current.temperature, 4.3, 1.2)
-    batteryLevel = clamp(current.batteryLevel - 0.25, 0, 100)
-    solarInput = round(58 + Math.random() * 10, 0)
-    coolingActive = true
-    ambientTemperature = round(29 + Math.random() * 2, 1)
-
-    if (temperature <= 4.6) {
-      nextMode = 'stable'
-      eventLog = appendEvent(
-        eventLog,
-        'Temperature restored to vaccine-safe range. System returned to stable transit.',
-      )
-    }
-  }
-
-  const nextPoint = {
-    label: formatTime(new Date()),
-    temperature: round(temperature, 1),
-    batteryLevel: round(batteryLevel, 1),
-  }
+  const batteryLevel = Number(reading.batteryLevel)
+  const batteryEstimatedHours = Number(reading.batteryEstimatedHours)
+  const solarInput = Number(reading.solarInput)
+  const solarPower = Number(reading.solarPower)
 
   return {
-    ...current,
-    mode: nextMode,
-    temperature: nextPoint.temperature,
-    batteryLevel: nextPoint.batteryLevel,
-    solarInput,
-    coolingActive,
-    ambientTemperature,
-    routeIndex,
-    history: [...current.history, nextPoint].slice(-HISTORY_LIMIT),
-    eventLog,
-    lastUpdated: new Date(),
+    ...reading,
+    recordedAt: reading.recordedAt,
+    temperature: Number(reading.temperature),
+    ambientTemperature: Number(reading.ambientTemperature),
+    batteryLevel: Number.isFinite(batteryLevel) ? batteryLevel : null,
+    batteryIsCharging:
+      typeof reading.batteryIsCharging === 'boolean'
+        ? reading.batteryIsCharging
+        : Boolean(Number(reading.batteryIsCharging)),
+    batteryStatus: reading.batteryStatus || null,
+    batteryEstimatedHours: Number.isFinite(batteryEstimatedHours) ? batteryEstimatedHours : null,
+    solarInput: Number.isFinite(solarInput) ? solarInput : null,
+    solarPower: Number.isFinite(solarPower) ? solarPower : null,
+    solarIsGenerating:
+      typeof reading.solarIsGenerating === 'boolean'
+        ? reading.solarIsGenerating
+        : Boolean(Number(reading.solarIsGenerating)),
+    solarStatus: reading.solarStatus || null,
   }
 }
 
-export default function useSimulation() {
-  const [state, setState] = useState(createInitialState)
+function normalizeSensorReadings(readings = []) {
+  return readings.map((reading) => normalizeSensorReading(reading)).filter(Boolean)
+}
 
-  useEffect(() => {
-    if (!state.isRunning) {
-      return undefined
-    }
-
-    const timer = window.setInterval(() => {
-      setState((current) => stepSimulation(current))
-    }, TICK_MS)
-
-    return () => window.clearInterval(timer)
-  }, [state.isRunning])
-
-  const temperatureStatus = deriveTemperatureStatus(state.temperature)
-  const batteryStatus = deriveBatteryStatus(state.batteryLevel)
-  const backupHours = estimateBackupHours(state.batteryLevel)
-  const energyUsage =
-    state.mode === 'failure'
-      ? 284
-      : state.mode === 'recovery'
-        ? 248
-        : state.coolingActive
-          ? 226
-          : 172
-  const coolingPerformance = state.coolingActive
+function normalizeSimulation(rawState, historyResponse, sensorFeedResponse) {
+  const normalizedHistory = normalizeHistory(historyResponse.history)
+  const normalizedRecentSensorReadings = normalizeSensorReadings(sensorFeedResponse.readings)
+  const normalizedActiveSensors = normalizeSensorReadings(sensorFeedResponse.sensors)
+  const lastSensorReading =
+    normalizeSensorReading(rawState.lastSensorReading) || normalizedRecentSensorReadings[0]
+  const latestHistoryPoint = normalizedHistory.at(-1)
+  const sensorBatteryLevel = Number(lastSensorReading?.batteryLevel)
+  const temperature = Number(rawState.temperature || 0)
+  const batteryLevel = Number.isFinite(sensorBatteryLevel)
+    ? sensorBatteryLevel
+    : latestHistoryPoint
+      ? Number(latestHistoryPoint.batteryLevel)
+      : Number(rawState.batteryLevel || 0)
+  const solarInput = Number(rawState.solarInput || 0)
+  const solarPower = Number(rawState.solarPower || lastSensorReading?.solarPower || 0)
+  const ambientTemperature = Number(rawState.ambientTemperature || 0)
+  const batteryEstimatedHours = Number(
+    rawState.batteryEstimatedHours ?? lastSensorReading?.batteryEstimatedHours,
+  )
+  const batteryStatusCode =
+    rawState.batteryStatusCode || lastSensorReading?.batteryStatus || null
+  const batteryIsCharging =
+    typeof rawState.batteryIsCharging === 'boolean'
+      ? rawState.batteryIsCharging
+      : Boolean(lastSensorReading?.batteryIsCharging)
+  const solarIsGenerating =
+    typeof rawState.solarIsGenerating === 'boolean'
+      ? rawState.solarIsGenerating
+      : Boolean(lastSensorReading?.solarIsGenerating)
+  const solarStatus = rawState.solarStatus || lastSensorReading?.solarStatus || null
+  const temperatureStatus =
+    rawState.temperatureStatus || deriveTemperatureStatus(temperature)
+  const derivedBatteryStatus = rawState.batteryStatus || deriveBatteryStatus(batteryLevel)
+  const batteryStatus = batteryStatusCode
+    ? {
+        tone:
+          batteryStatusCode === 'CRITICAL' || batteryStatusCode === 'LOW'
+            ? 'critical'
+            : batteryStatusCode === 'MEDIUM' || batteryStatusCode === 'DISCHARGING'
+              ? 'warning'
+              : 'safe',
+        label: batteryStatusCode.replace(/_/g, ' '),
+      }
+    : derivedBatteryStatus
+  const backupHours =
+    Number.isFinite(batteryEstimatedHours)
+      ? batteryEstimatedHours
+      : rawState.backupHours !== undefined
+        ? Number(rawState.backupHours)
+        : estimateBackupHours(batteryLevel)
+  const energyUsage = Number.isFinite(solarPower) ? solarPower : 0
+  const coolingPerformance = rawState.coolingActive
     ? round(
-        state.mode === 'failure'
+        rawState.mode === 'failure'
           ? 96
-          : state.mode === 'recovery'
+          : rawState.mode === 'recovery'
             ? 84
-            : 52 + Math.max(0, state.temperature - IDEAL_TEMP) * 14,
+            : 52 + Math.max(0, temperature - IDEAL_TEMP) * 14,
         0,
       )
     : 14
   const coolingLabel =
-    state.mode === 'failure'
+    rawState.mode === 'failure'
       ? 'Maximum response'
-      : state.mode === 'recovery'
+      : rawState.mode === 'recovery'
         ? 'Recovery load'
-        : state.coolingActive
+        : rawState.coolingActive
           ? 'Regulated cooling'
           : 'Standby monitoring'
   const systemHealth =
@@ -184,58 +175,36 @@ export default function useSimulation() {
       : temperatureStatus.tone === 'warning'
         ? 'Watch'
         : 'Nominal'
-  const alert =
-    temperatureStatus.tone === 'safe'
-      ? null
-      : {
-          title:
-            temperatureStatus.tone === 'critical'
-              ? 'Immediate attention required'
-              : 'Temperature trend warning',
-          detail: temperatureStatus.message,
-        }
-
-  const toggleSimulation = () => {
-    setState((current) => ({
-      ...current,
-      isRunning: !current.isRunning,
-      eventLog: appendEvent(
-        current.eventLog,
-        current.isRunning
-          ? 'Simulation paused for presentation review.'
-          : 'Simulation resumed with live telemetry updates.',
-      ),
-    }))
-  }
-
-  const triggerFailure = () => {
-    setState((current) => ({
-      ...current,
-      mode: 'failure',
-      coolingActive: true,
-      eventLog: appendEvent(
-        current.eventLog,
-        'Failure scenario injected: seal leak and solar drop simulated.',
-      ),
-    }))
-  }
-
-  const restoreSystem = () => {
-    setState((current) => ({
-      ...current,
-      mode: 'recovery',
-      coolingActive: true,
-      eventLog: appendEvent(
-        current.eventLog,
-        'Recovery command issued. Peltier boost and PCM support rebalancing cargo bay.',
-      ),
-    }))
-  }
 
   return {
-    ...state,
-    modeLabel: MODE_LABELS[state.mode],
-    location: ROUTE_POINTS[state.routeIndex],
+    mode: rawState.mode,
+    modeLabel: rawState.modeLabel || 'Unknown',
+    isRunning: Boolean(rawState.isRunning),
+    temperature,
+    batteryLevel,
+    batteryIsCharging,
+    batteryStatusCode,
+    batteryEstimatedHours: Number.isFinite(batteryEstimatedHours) ? batteryEstimatedHours : null,
+    solarInput,
+    solarPower,
+    solarIsGenerating,
+    solarStatus,
+    coolingActive: Boolean(rawState.coolingActive),
+    ambientTemperature,
+    location: rawState.location || 'Unknown route',
+    history: normalizedHistory,
+    recentSensorReadings: normalizedRecentSensorReadings,
+    activeSensors: normalizedActiveSensors,
+    activeSensorCount:
+      Number(sensorFeedResponse.activeSources) ||
+      normalizedActiveSensors.length ||
+      (lastSensorReading?.source ? 1 : 0),
+    lastSensorReading,
+    sensorFeedActive: Boolean(rawState.sensorFeedActive),
+    sensorFeedSource:
+      rawState.sensorFeedSource || rawState.lastSensorReading?.source || lastSensorReading?.source || null,
+    eventLog: rawState.eventLog || [],
+    lastUpdated: new Date(rawState.lastUpdated || Date.now()),
     temperatureStatus,
     batteryStatus,
     backupHours,
@@ -243,7 +212,93 @@ export default function useSimulation() {
     coolingPerformance,
     coolingLabel,
     systemHealth,
-    alert,
+    alert: rawState.alert || null,
+  }
+}
+
+async function loadSimulationSnapshot() {
+  const simulation = await getSimulation()
+  const activeSource =
+    simulation.sensorFeedSource || simulation.lastSensorReading?.source || undefined
+  const [history, sensorFeed] = await Promise.all([
+    getSimulationHistory(10, simulation.sensorFeedActive ? activeSource : undefined),
+    getSensorReadings(12),
+  ])
+
+  return normalizeSimulation(simulation, history, sensorFeed)
+}
+
+export default function useSimulation() {
+  const [state, setState] = useState(createInitialState)
+
+  useEffect(() => {
+    let isActive = true
+
+    const syncFromBackend = async () => {
+      try {
+        const nextState = await loadSimulationSnapshot()
+
+        if (isActive) {
+          setState((current) => ({
+            ...current,
+            ...nextState,
+            error: null,
+          }))
+        }
+      } catch (error) {
+        if (isActive) {
+          setState((current) => ({
+            ...current,
+            error: error.message,
+          }))
+        }
+      }
+    }
+
+    syncFromBackend()
+
+    const timer = window.setInterval(() => {
+      syncFromBackend()
+    }, TICK_MS)
+
+    return () => {
+      isActive = false
+      window.clearInterval(timer)
+    }
+  }, [])
+
+  const runAction = async (action) => {
+    try {
+      await action()
+      const nextState = await loadSimulationSnapshot()
+
+      setState((current) => ({
+        ...current,
+        ...nextState,
+        error: null,
+      }))
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: error.message,
+      }))
+    }
+  }
+
+  const toggleSimulation = () => {
+    runAction(() => setSimulationRunning(!state.isRunning))
+  }
+
+  const triggerFailure = () => {
+    runAction(() => triggerFailureScenario())
+  }
+
+  const restoreSystem = () => {
+    runAction(() => restoreSimulationSystem())
+  }
+
+  return {
+    ...state,
     toggleSimulation,
     triggerFailure,
     restoreSystem,

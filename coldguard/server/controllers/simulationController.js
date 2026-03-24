@@ -38,11 +38,13 @@ async function updateRunningState(req, res) {
 async function getTelemetryHistory(req, res) {
   const limit = Number(req.query.limit || 120)
   const hours = req.query.hours ? Number(req.query.hours) : undefined
-  const history = await simulationService.getTelemetryHistory({ limit, hours })
+  const source = req.query.source ? String(req.query.source) : undefined
+  const history = await simulationService.getTelemetryHistory({ limit, hours, source })
 
   res.json({
     limit,
     hours: hours ?? null,
+    source: source ?? null,
     count: history.length,
     history,
   })
@@ -70,14 +72,62 @@ async function getTemperatureReport(req, res) {
 }
 
 async function ingestSensorReading(req, res) {
-  const { temperature, ambientTemperature, source } = req.body
+  console.log('Received sensor reading:', req.body)
+  const {
+    temperature,
+    ambientTemperature,
+    source,
+    deviceId,
+    battery,
+    batteryLevel,
+    solar,
+    timestamp,
+  } = req.body
+
+  const batteryFromNested =
+    typeof battery === 'object' && battery !== null && Number.isFinite(Number(battery.level))
+      ? Number(battery.level)
+      : undefined
+  const solarPower =
+    typeof solar === 'object' && solar !== null && Number.isFinite(Number(solar.power))
+      ? Number(solar.power)
+      : undefined
+
   res.json(
     await simulationService.ingestSensorReading({
       temperature,
       ambientTemperature,
-      source,
+      source: source || deviceId,
+      batteryLevel: batteryLevel ?? batteryFromNested ?? battery,
+      batteryIsCharging:
+        typeof battery === 'object' && battery !== null ? battery.isCharging : undefined,
+      batteryStatus: typeof battery === 'object' && battery !== null ? battery.status : undefined,
+      batteryEstimatedHours:
+        typeof battery === 'object' && battery !== null ? battery.estimatedHours : undefined,
+      solarInput: solarPower,
+      solarPower,
+      solarIsGenerating:
+        typeof solar === 'object' && solar !== null ? solar.isGenerating : undefined,
+      solarStatus: typeof solar === 'object' && solar !== null ? solar.status : undefined,
+      recordedAt: timestamp,
     }),
   )
+}
+
+async function getSensorReadings(req, res) {
+  const limit = Number(req.query.limit || 10)
+  const [readings, sensors] = await Promise.all([
+    simulationService.getRecentSensorReadings(limit),
+    simulationService.getLatestSensorSources(limit),
+  ])
+
+  res.json({
+    limit,
+    count: readings.length,
+    readings,
+    activeSources: sensors.length,
+    sensors,
+  })
 }
 
 module.exports = {
@@ -93,4 +143,5 @@ module.exports = {
   getAnalyticsSummary,
   getTemperatureReport,
   ingestSensorReading,
+  getSensorReadings,
 }

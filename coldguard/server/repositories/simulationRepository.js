@@ -29,7 +29,13 @@ async function saveSnapshot(snapshot) {
         is_running,
         temperature,
         battery_level,
+        battery_is_charging,
+        battery_status,
+        battery_estimated_hours,
         solar_input,
+        solar_power,
+        solar_is_generating,
+        solar_status,
         cooling_active,
         ambient_temperature,
         route_index,
@@ -37,14 +43,20 @@ async function saveSnapshot(snapshot) {
         alert_tone,
         alert_title,
         backup_hours
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       snapshot.mode,
       snapshot.isRunning,
       snapshot.temperature,
       snapshot.batteryLevel,
+      snapshot.batteryIsCharging,
+      snapshot.batteryStatusCode,
+      snapshot.batteryEstimatedHours,
       snapshot.solarInput,
+      snapshot.solarPower,
+      snapshot.solarIsGenerating,
+      snapshot.solarStatus,
       snapshot.coolingActive,
       snapshot.ambientTemperature,
       snapshot.routeIndex,
@@ -68,25 +80,39 @@ async function saveSensorReading(reading) {
   await pool.execute(
     `
       INSERT INTO temperature_sensor_readings (
+        recorded_at,
         source,
         temperature,
         ambient_temperature,
         mode,
         route_label,
         battery_level,
+        battery_is_charging,
+        battery_status,
+        battery_estimated_hours,
         solar_input,
+        solar_power,
+        solar_is_generating,
+        solar_status,
         cooling_active,
         action_taken
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
+      toMySqlDateTime(reading.recordedAt || new Date()),
       reading.source,
       reading.temperature,
       reading.ambientTemperature,
       reading.mode,
       reading.location,
       reading.batteryLevel,
+      reading.batteryIsCharging,
+      reading.batteryStatus,
+      reading.batteryEstimatedHours,
       reading.solarInput,
+      reading.solarPower,
+      reading.solarIsGenerating,
+      reading.solarStatus,
       reading.coolingActive,
       reading.actionTaken,
     ],
@@ -117,7 +143,7 @@ async function saveEvent(event) {
   return true
 }
 
-async function getTelemetryHistory({ limit = 120, hours } = {}) {
+async function getTelemetryHistory({ limit = 120, hours, source } = {}) {
   const pool = getPool()
 
   if (!pool) {
@@ -126,12 +152,19 @@ async function getTelemetryHistory({ limit = 120, hours } = {}) {
 
   let query = `
     SELECT
+      id,
       recorded_at AS recordedAt,
       source,
       temperature,
       ambient_temperature AS ambientTemperature,
       battery_level AS batteryLevel,
+      battery_is_charging AS batteryIsCharging,
+      battery_status AS batteryStatus,
+      battery_estimated_hours AS batteryEstimatedHours,
       solar_input AS solarInput,
+      solar_power AS solarPower,
+      solar_is_generating AS solarIsGenerating,
+      solar_status AS solarStatus,
       mode,
       route_label AS location,
       cooling_active AS coolingActive,
@@ -140,16 +173,107 @@ async function getTelemetryHistory({ limit = 120, hours } = {}) {
   `
   const params = []
   const safeLimit = normalizeLimit(limit, 120)
+  const whereClauses = []
 
   if (hours) {
-    query += ` WHERE recorded_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? HOUR)`
+    whereClauses.push(`recorded_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? HOUR)`)
     params.push(hours)
   }
 
-  query += ` ORDER BY recorded_at DESC LIMIT ${safeLimit}`
+  if (source) {
+    whereClauses.push(`source = ?`)
+    params.push(source)
+  }
+
+  if (whereClauses.length > 0) {
+    query += ` WHERE ${whereClauses.join(' AND ')}`
+  }
+
+  query += ` ORDER BY id DESC LIMIT ${safeLimit}`
 
   const [rows] = await pool.execute(query, params)
   return rows.reverse()
+}
+
+async function getRecentSensorReadings(limit = 10) {
+  const pool = getPool()
+
+  if (!pool) {
+    return []
+  }
+
+  const safeLimit = normalizeLimit(limit, 10)
+  const [rows] = await pool.execute(
+    `
+      SELECT
+        id,
+        recorded_at AS recordedAt,
+        source,
+        temperature,
+        ambient_temperature AS ambientTemperature,
+        battery_level AS batteryLevel,
+        battery_is_charging AS batteryIsCharging,
+        battery_status AS batteryStatus,
+        battery_estimated_hours AS batteryEstimatedHours,
+        solar_input AS solarInput,
+        solar_power AS solarPower,
+        solar_is_generating AS solarIsGenerating,
+        solar_status AS solarStatus,
+        mode,
+        route_label AS location,
+        cooling_active AS coolingActive,
+        action_taken AS actionTaken
+      FROM temperature_sensor_readings
+      ORDER BY id DESC
+      LIMIT ${safeLimit}
+    `,
+  )
+
+  return rows
+}
+
+async function getLatestSensorSources(limit = 10) {
+  const pool = getPool()
+
+  if (!pool) {
+    return []
+  }
+
+  const safeLimit = normalizeLimit(limit, 10)
+  const [rows] = await pool.execute(
+    `
+      SELECT
+        latest.id,
+        latest.recorded_at AS recordedAt,
+        latest.source,
+        latest.temperature,
+        latest.ambient_temperature AS ambientTemperature,
+        latest.battery_level AS batteryLevel,
+        latest.battery_is_charging AS batteryIsCharging,
+        latest.battery_status AS batteryStatus,
+        latest.battery_estimated_hours AS batteryEstimatedHours,
+        latest.solar_input AS solarInput,
+        latest.solar_power AS solarPower,
+        latest.solar_is_generating AS solarIsGenerating,
+        latest.solar_status AS solarStatus,
+        latest.mode,
+        latest.route_label AS location,
+        latest.cooling_active AS coolingActive,
+        latest.action_taken AS actionTaken
+      FROM temperature_sensor_readings latest
+      INNER JOIN (
+        SELECT source, MAX(id) AS max_id
+        FROM temperature_sensor_readings
+        WHERE source NOT IN ('simulated', 'manual')
+        GROUP BY source
+      ) grouped
+        ON latest.id = grouped.max_id
+      ORDER BY latest.id DESC
+      LIMIT ${safeLimit}
+    `,
+  )
+
+  return rows
 }
 
 async function getRecentEvents(limit = 20) {
@@ -276,6 +400,8 @@ module.exports = {
   saveSensorReading,
   saveEvent,
   getTelemetryHistory,
+  getRecentSensorReadings,
+  getLatestSensorSources,
   getRecentEvents,
   getAnalyticsSummary,
   getTemperatureReport,

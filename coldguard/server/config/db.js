@@ -23,6 +23,16 @@ function isConfigured() {
   return Boolean(config.host && config.user && config.database)
 }
 
+async function ensureColumn(pool, tableName, columnName, definition) {
+  const [rows] = await pool.query(`SHOW COLUMNS FROM \`${tableName}\` LIKE ?`, [columnName])
+
+  if (rows.length > 0) {
+    return
+  }
+
+  await pool.query(`ALTER TABLE \`${tableName}\` ADD COLUMN ${definition}`)
+}
+
 async function initializeDatabase() {
   const config = getConfig()
   connectionState = {
@@ -73,11 +83,54 @@ async function initializeDatabase() {
         mode VARCHAR(32) NOT NULL,
         route_label VARCHAR(128) NOT NULL,
         battery_level DECIMAL(5,2) NOT NULL,
+        battery_is_charging BOOLEAN NOT NULL DEFAULT FALSE,
+        battery_status VARCHAR(32) NULL,
+        battery_estimated_hours DECIMAL(6,2) NULL,
         solar_input DECIMAL(5,2) NOT NULL,
+        solar_power DECIMAL(8,2) NULL,
+        solar_is_generating BOOLEAN NOT NULL DEFAULT FALSE,
+        solar_status VARCHAR(32) NULL,
         cooling_active BOOLEAN NOT NULL,
         action_taken VARCHAR(64) NOT NULL
       )
     `)
+
+    await ensureColumn(
+      pool,
+      'temperature_sensor_readings',
+      'battery_is_charging',
+      '`battery_is_charging` BOOLEAN NOT NULL DEFAULT FALSE',
+    )
+    await ensureColumn(
+      pool,
+      'temperature_sensor_readings',
+      'battery_status',
+      '`battery_status` VARCHAR(32) NULL',
+    )
+    await ensureColumn(
+      pool,
+      'temperature_sensor_readings',
+      'battery_estimated_hours',
+      '`battery_estimated_hours` DECIMAL(6,2) NULL',
+    )
+    await ensureColumn(
+      pool,
+      'temperature_sensor_readings',
+      'solar_power',
+      '`solar_power` DECIMAL(8,2) NULL',
+    )
+    await ensureColumn(
+      pool,
+      'temperature_sensor_readings',
+      'solar_is_generating',
+      '`solar_is_generating` BOOLEAN NOT NULL DEFAULT FALSE',
+    )
+    await ensureColumn(
+      pool,
+      'temperature_sensor_readings',
+      'solar_status',
+      '`solar_status` VARCHAR(32) NULL',
+    )
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS simulation_snapshots (
@@ -87,7 +140,13 @@ async function initializeDatabase() {
         is_running BOOLEAN NOT NULL,
         temperature DECIMAL(5,2) NOT NULL,
         battery_level DECIMAL(5,2) NOT NULL,
+        battery_is_charging BOOLEAN NOT NULL DEFAULT FALSE,
+        battery_status VARCHAR(32) NULL,
+        battery_estimated_hours DECIMAL(6,2) NULL,
         solar_input DECIMAL(5,2) NOT NULL,
+        solar_power DECIMAL(8,2) NULL,
+        solar_is_generating BOOLEAN NOT NULL DEFAULT FALSE,
+        solar_status VARCHAR(32) NULL,
         cooling_active BOOLEAN NOT NULL,
         ambient_temperature DECIMAL(5,2) NOT NULL,
         route_index INT NOT NULL,
@@ -97,6 +156,43 @@ async function initializeDatabase() {
         backup_hours DECIMAL(6,2) NOT NULL
       )
     `)
+
+    await ensureColumn(
+      pool,
+      'simulation_snapshots',
+      'battery_is_charging',
+      '`battery_is_charging` BOOLEAN NOT NULL DEFAULT FALSE',
+    )
+    await ensureColumn(
+      pool,
+      'simulation_snapshots',
+      'battery_status',
+      '`battery_status` VARCHAR(32) NULL',
+    )
+    await ensureColumn(
+      pool,
+      'simulation_snapshots',
+      'battery_estimated_hours',
+      '`battery_estimated_hours` DECIMAL(6,2) NULL',
+    )
+    await ensureColumn(
+      pool,
+      'simulation_snapshots',
+      'solar_power',
+      '`solar_power` DECIMAL(8,2) NULL',
+    )
+    await ensureColumn(
+      pool,
+      'simulation_snapshots',
+      'solar_is_generating',
+      '`solar_is_generating` BOOLEAN NOT NULL DEFAULT FALSE',
+    )
+    await ensureColumn(
+      pool,
+      'simulation_snapshots',
+      'solar_status',
+      '`solar_status` VARCHAR(32) NULL',
+    )
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS simulation_events (
