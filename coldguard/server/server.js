@@ -1,13 +1,24 @@
 require('dotenv').config()
 
+const http = require('http')
 const express = require('express')
 const cors = require('cors')
+const { Server } = require('socket.io')
 const { closeDatabase, getConnectionState, initializeDatabase } = require('./config/db')
 const simulationRoutes = require('./routes/simulationRoutes')
 const simulationService = require('./services/simulationService')
+const logger = require('./logger/fileLogger')
 
 const app = express()
+const httpServer = http.createServer(app)
+const io = new Server(httpServer, {
+  cors: {
+    origin: '*',
+  },
+})
 const PORT = Number(process.env.PORT) || 4000
+
+app.set('io', io)
 
 app.use(
   cors({
@@ -15,6 +26,10 @@ app.use(
   }),
 )
 app.use(express.json())
+
+io.on('connection', (socket) => {
+  socket.emit('simulation_state', simulationService.getSimulationState())
+})
 
 app.get('/', (_req, res) => {
   const persistence = getConnectionState()
@@ -28,6 +43,9 @@ app.get('/', (_req, res) => {
       'GET /api/simulation',
       'GET /api/simulation/history',
       'GET /api/simulation/events',
+      'GET /api/esp32/signals',
+      'GET /api/gps/history',
+      'GET /api/gps/latest',
       'GET /api/analytics/summary',
       'GET /api/reports/temperature',
       'POST /api/simulation/sensor-reading',
@@ -43,7 +61,7 @@ app.get('/', (_req, res) => {
 app.use('/api', simulationRoutes)
 
 app.use((err, _req, res, _next) => {
-  console.error(err)
+  logger.logServerError('Express request error', err)
   res.status(500).json({
     ok: false,
     message: 'Unexpected server error.',
@@ -68,14 +86,14 @@ async function shutdown() {
 
 process.on('SIGINT', () => {
   shutdown().catch((error) => {
-    console.error('Shutdown failed:', error)
+    logger.logServerError('Shutdown failed during SIGINT', error)
     process.exit(1)
   })
 })
 
 process.on('SIGTERM', () => {
   shutdown().catch((error) => {
-    console.error('Shutdown failed:', error)
+    logger.logServerError('Shutdown failed during SIGTERM', error)
     process.exit(1)
   })
 })
@@ -84,20 +102,20 @@ async function bootstrap() {
   const persistence = await initializeDatabase()
 
   if (persistence.connected) {
-    console.log(`MySQL connected: ${persistence.database}`)
+    logger.logServerEvent('MySQL connected', { database: persistence.database })
     await simulationService.initializePersistence()
   } else {
-    console.warn(`MySQL unavailable: ${persistence.error}`)
+    logger.logServerEvent('MySQL unavailable', { error: persistence.error })
   }
 
-  simulationService.startEngine()
+  simulationService.startEngine(io)
 
-  server = app.listen(PORT, () => {
-    console.log(`ColdGuard server listening on port ${PORT}`)
+  server = httpServer.listen(PORT, () => {
+    logger.logServerEvent('ColdGuard server listening', { port: PORT })
   })
 }
 
 bootstrap().catch((error) => {
-  console.error('Server bootstrap failed:', error)
+  logger.logServerError('Server bootstrap failed', error)
   process.exit(1)
 })

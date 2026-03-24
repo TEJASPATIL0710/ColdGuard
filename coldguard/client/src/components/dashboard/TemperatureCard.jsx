@@ -1,16 +1,19 @@
 import { getTemperatureFill } from '../../utils/calculations'
 
 function TemperatureCard({ temperature, status }) {
-  const fill = getTemperatureFill(temperature)
+  const hasTemperature = temperature !== null && temperature !== undefined
+  const fill = hasTemperature ? getTemperatureFill(temperature) : 0
 
   return (
     <article className="panel panel-temperature">
       <div className="panel-head">
         <div>
           <p className="eyebrow">Cargo temperature</p>
-          <h2>{temperature.toFixed(1)} deg C</h2>
+          <h2>{hasTemperature ? `${temperature.toFixed(1)} deg C` : 'Awaiting sensor...'}</h2>
         </div>
-        <span className={`tone-pill tone-${status.tone}`}>{status.label}</span>
+        <span className={`tone-pill tone-${status?.tone || 'neutral'}`}>
+          {status?.label || 'Awaiting feed'}
+        </span>
       </div>
 
       <div className="temperature-band" aria-hidden="true">
@@ -21,7 +24,7 @@ function TemperatureCard({ temperature, status }) {
         <span>Cargo safe range</span>
         <strong>2 deg C to 8 deg C</strong>
       </div>
-      <p className="panel-copy">{status.message}</p>
+      <p className="panel-copy">{status?.message || 'Awaiting sensor...'}</p>
     </article>
   )
 }

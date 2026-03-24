@@ -76,13 +76,16 @@ function deriveBatteryStatus(level) {
   }
 }
 
-function formatClock(date = new Date()) {
-  return new Intl.DateTimeFormat('en-IN', {
+function formatClock(date) {
+  const d = date instanceof Date ? date : new Date(date)
+  if (isNaN(d.getTime())) return '--:--:--'
+  return d.toLocaleTimeString('en-IN', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
     hour12: false,
-  }).format(date)
+    timeZone: 'Asia/Kolkata',
+  })
 }
 
 module.exports = {

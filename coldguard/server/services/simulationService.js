@@ -1,5 +1,6 @@
 const { createLogEntry } = require('../models/LogModel')
 const simulationRepository = require('../repositories/simulationRepository')
+const logger = require('../logger/fileLogger')
 const {
   IDEAL_TEMP,
   SAFE_MAX_TEMP,
@@ -37,57 +38,44 @@ const METRIC_CARDS = [
   { key: 'carbon', label: 'Carbon reduction', target: 'Vs diesel transport' },
 ]
 
-function createHistorySeed() {
-  const now = Date.now()
-
-  return Array.from({ length: 12 }, (_, index) => {
-    const offset = (11 - index) * TICK_MS
-    return {
-      label: formatClock(new Date(now - offset)),
-      temperature: round(4 + Math.sin(index / 2) * 0.2, 1),
-      batteryLevel: round(96 - index * 0.2, 1),
-    }
-  })
-}
-
 function createInitialState() {
   const createdAt = new Date().toISOString()
 
   return {
     mode: 'stable',
     isRunning: true,
-    temperature: 4.1,
+    temperature: null,
     lastSensorReading: {
-      source: 'simulated',
-      temperature: 4.1,
-      ambientTemperature: 31,
-      batteryLevel: 96,
+      source: 'awaiting',
+      temperature: null,
+      ambientTemperature: null,
+      batteryLevel: null,
       batteryIsCharging: false,
-      batteryStatus: 'SIMULATED',
-      batteryEstimatedHours: 69.1,
-      solarInput: 68,
-      solarPower: 0,
+      batteryStatus: null,
+      batteryEstimatedHours: null,
+      solarInput: null,
+      solarPower: null,
       solarIsGenerating: false,
-      solarStatus: 'SIMULATED',
-      actionTaken: 'monitoring',
-      recordedAt: createdAt,
+      solarStatus: null,
+      actionTaken: null,
+      recordedAt: null,
     },
-    batteryLevel: 96,
-    batterySource: 'simulated',
+    batteryLevel: null,
+    batterySource: null,
     batteryIsCharging: false,
-    batteryStatusCode: 'SIMULATED',
-    batteryEstimatedHours: 69.1,
+    batteryStatusCode: null,
+    batteryEstimatedHours: null,
     sensorFeedActive: false,
     sensorFeedSource: null,
-    solarInput: 68,
-    solarPower: 0,
+    solarInput: null,
+    solarPower: null,
     solarIsGenerating: false,
-    solarStatus: 'SIMULATED',
+    solarStatus: null,
     coolingActive: false,
-    ambientTemperature: 31,
+    ambientTemperature: null,
     coolingReason: 'Monitoring safe sensor band.',
     routeIndex: 0,
-    history: createHistorySeed(),
+    history: [],
     eventLog: [createLogEntry('ColdGuard digital twin started in stable transport mode.')],
     lastUpdated: createdAt,
   }
@@ -96,11 +84,25 @@ function createInitialState() {
 let state = createInitialState()
 let engineHandle = null
 let engineBusy = false
+let _io = null
 
 async function pushEvent(message, level = 'info') {
   const event = createLogEntry(message, level)
   state.eventLog = [event, ...state.eventLog].slice(0, 8)
   await simulationRepository.saveEvent(event)
+
+  if (_io) {
+    _io.emit('event', event)
+
+    if (level === 'warning' && message.startsWith('ALERT:')) {
+      _io.emit('threshold_alert', {
+        message,
+        temperature: state.temperature,
+        timestamp: event.createdAt,
+      })
+    }
+  }
+
   return event
 }
 
@@ -167,29 +169,37 @@ function isExternalSensorSource(source) {
 }
 
 function buildMetrics() {
-  const backupHours = estimateBackupHours(state.batteryLevel)
-  const stability = calculateStability(state.temperature)
-  const energy = state.mode === 'failure' ? 284 : state.mode === 'recovery' ? 248 : 214
-  const carbon = state.mode === 'failure' ? '53%' : '61%'
+  const backupHours = Number.isFinite(state.batteryEstimatedHours)
+    ? state.batteryEstimatedHours
+    : Number.isFinite(state.batteryLevel)
+      ? estimateBackupHours(state.batteryLevel)
+      : null
+  const stability = Number.isFinite(state.temperature)
+    ? calculateStability(state.temperature)
+    : null
 
   return METRIC_CARDS.map((card) => {
     if (card.key === 'stability') {
-      return { ...card, value: `${stability} deg C deviation` }
+      return { ...card, value: stability === null ? null : `${stability} deg C deviation` }
     }
 
     if (card.key === 'backup') {
-      return { ...card, value: `${backupHours} hrs remaining` }
+      return { ...card, value: backupHours === null ? null : `${backupHours} hrs remaining` }
     }
 
     if (card.key === 'energy') {
-      return { ...card, value: `${energy} Wh/day` }
+      return { ...card, value: null }
     }
 
-    return { ...card, value: carbon }
+    return { ...card, value: null }
   })
 }
 
 function buildAlert() {
+  if (state.temperature === null) {
+    return null
+  }
+
   const temperatureStatus = deriveTemperatureStatus(state.temperature)
 
   if (temperatureStatus.tone === 'safe') {
@@ -206,14 +216,23 @@ function buildAlert() {
 }
 
 function serializeState() {
-  const temperatureStatus = deriveTemperatureStatus(state.temperature)
-  const batteryStatus = deriveBatteryStatus(state.batteryLevel)
+  const waitingForSensor = state.temperature === null
+  const temperatureStatus = waitingForSensor
+    ? null
+    : deriveTemperatureStatus(state.temperature)
+  const batteryStatus = state.batteryLevel === null ? null : deriveBatteryStatus(state.batteryLevel)
 
   return {
     ...state,
     modeLabel: MODE_LABELS[state.mode],
     location: ROUTE_POINTS[state.routeIndex],
-    backupHours: estimateBackupHours(state.batteryLevel),
+    waitingForSensor,
+    backupHours:
+      Number.isFinite(state.batteryEstimatedHours)
+        ? state.batteryEstimatedHours
+        : state.batteryLevel === null
+          ? null
+          : estimateBackupHours(state.batteryLevel),
     temperatureStatus,
     batteryStatus,
     alert: buildAlert(),
@@ -222,6 +241,15 @@ function serializeState() {
 }
 
 async function persistStateSnapshot() {
+  if (
+    state.temperature === null ||
+    state.batteryLevel === null ||
+    state.solarInput === null ||
+    state.ambientTemperature === null
+  ) {
+    return
+  }
+
   await simulationRepository.saveSnapshot(serializeState())
 }
 
@@ -230,7 +258,10 @@ async function persistSensorReading(sensorReading, actionTaken, coolingActive, b
     recordedAt: sensorReading.recordedAt,
     source: sensorReading.source,
     temperature: sensorReading.temperature,
-    ambientTemperature: sensorReading.ambientTemperature,
+    ambientTemperature:
+      sensorReading.ambientTemperature === null || sensorReading.ambientTemperature === undefined
+        ? 0
+        : sensorReading.ambientTemperature,
     mode: state.mode,
     location: ROUTE_POINTS[state.routeIndex],
     batteryLevel: batteryLevel,
@@ -252,6 +283,7 @@ async function applySensorReading(sensorReading) {
   const previousMode = state.mode
   const previousTemperature = state.temperature
   const externalSensorActive = isExternalSensorSource(sensorReading.source)
+  const formattedTime = formatClock(new Date(sensorReading.recordedAt))
   const decision = determineCoolingDecision(
     sensorReading.temperature,
     state.mode,
@@ -299,11 +331,13 @@ async function applySensorReading(sensorReading) {
       batteryLevel: updatedBatteryLevel,
       solarInput: updatedSolarInput,
       actionTaken: decision.actionTaken,
+      recordedAt: formattedTime,
     },
     history: [
       ...state.history,
       {
-        label: formatClock(new Date(sensorReading.recordedAt)),
+        label:       formattedTime,
+        recordedAt:  sensorReading.recordedAt,
         temperature: sensorReading.temperature,
         batteryLevel: updatedBatteryLevel,
       },
@@ -329,9 +363,27 @@ async function applySensorReading(sensorReading) {
     )
   }
 
-  if (sensorReading.temperature > SAFE_MAX_TEMP && previousTemperature <= SAFE_MAX_TEMP) {
+  if (
+    sensorReading.temperature > SAFE_MAX_TEMP &&
+    previousTemperature !== null &&
+    previousTemperature <= SAFE_MAX_TEMP
+  ) {
     await pushEvent(
       `Temperature excursion detected from sensor input ${sensorReading.temperature} deg C.`,
+      'warning',
+    )
+  }
+
+  if (sensorReading.temperature > 8 && previousTemperature !== null && previousTemperature <= 8) {
+    await pushEvent(
+      `ALERT: Temperature exceeded 8°C — reading is ${sensorReading.temperature}°C. Cold chain integrity at risk.`,
+      'warning',
+    )
+  }
+
+  if (sensorReading.temperature < 2 && previousTemperature !== null && previousTemperature >= 2) {
+    await pushEvent(
+      `ALERT: Temperature dropped below 2°C — reading is ${sensorReading.temperature}°C. Freezing risk detected.`,
       'warning',
     )
   }
@@ -344,6 +396,10 @@ async function applySensorReading(sensorReading) {
 }
 
 async function stepSimulation() {
+  if (state.temperature === null) {
+    return serializeState()
+  }
+
   if (state.sensorFeedActive) {
     return serializeState()
   }
@@ -531,7 +587,9 @@ async function initializePersistence() {
   await persistStateSnapshot()
 }
 
-function startEngine() {
+function startEngine(io) {
+  _io = io || _io
+
   if (engineHandle) {
     return
   }
@@ -544,7 +602,7 @@ function startEngine() {
     engineBusy = true
     Promise.resolve(stepSimulation())
       .catch((error) => {
-        console.error('Simulation engine tick failed:', error.message)
+        logger.logServerError('Simulation engine tick failed', error)
       })
       .finally(() => {
         engineBusy = false

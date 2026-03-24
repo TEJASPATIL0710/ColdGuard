@@ -1,5 +1,8 @@
 const simulationService = require('../services/simulationService')
+const esp32SignalService = require('../services/esp32SignalService')
+const gpsService = require('../services/gpsService')
 const { getConnectionState } = require('../config/db')
+const logger = require('../logger/fileLogger')
 
 function getHealth(_req, res) {
   res.json({
@@ -71,8 +74,35 @@ async function getTemperatureReport(req, res) {
   res.json(await simulationService.getTemperatureReport(hours))
 }
 
+async function getEsp32Signals(req, res) {
+  const limit = Number(req.query.limit || 30)
+  const signals = await esp32SignalService.getRecentSignals(limit)
+
+  res.json({
+    limit,
+    count: signals.length,
+    signals,
+  })
+}
+
+async function getGpsHistory(req, res) {
+  const limit = Number(req.query.limit || 50)
+  const history = await gpsService.getLocationHistory(limit)
+
+  res.json({
+    limit,
+    count: history.length,
+    history,
+  })
+}
+
+async function getLatestGps(req, res) {
+  const location = await gpsService.getLatestLocation()
+  res.json({ location })
+}
+
 async function ingestSensorReading(req, res) {
-  console.log('Received sensor reading:', req.body)
+  logger.logIncomingSensor(req.body)
   const {
     temperature,
     ambientTemperature,
@@ -93,8 +123,7 @@ async function ingestSensorReading(req, res) {
       ? Number(solar.power)
       : undefined
 
-  res.json(
-    await simulationService.ingestSensorReading({
+  const payload = await simulationService.ingestSensorReading({
       temperature,
       ambientTemperature,
       source: source || deviceId,
@@ -110,8 +139,25 @@ async function ingestSensorReading(req, res) {
         typeof solar === 'object' && solar !== null ? solar.isGenerating : undefined,
       solarStatus: typeof solar === 'object' && solar !== null ? solar.status : undefined,
       recordedAt: timestamp,
-    }),
-  )
+    })
+
+  res.json(payload)
+
+  const io = req.app.get('io')
+  const temp = Number(req.body.temperature)
+  const signalBatteryLevel = req.body.battery?.level ?? req.body.batteryLevel ?? null
+  const solarSignalPower = req.body.solar?.power ?? null
+
+  esp32SignalService
+    .processAndEmit(temp, signalBatteryLevel, solarSignalPower, io)
+    .catch((error) => {
+      logger.logServerError('ESP32 signal processing failed', error)
+    })
+
+  const gpsData = req.body.gps ?? null
+  gpsService.processGpsReading(gpsData, io).catch((error) => {
+    logger.logServerError('GPS processing failed', error)
+  })
 }
 
 async function getSensorReadings(req, res) {
@@ -142,6 +188,9 @@ module.exports = {
   getRecentEvents,
   getAnalyticsSummary,
   getTemperatureReport,
+  getEsp32Signals,
+  getGpsHistory,
+  getLatestGps,
   ingestSensorReading,
   getSensorReadings,
 }

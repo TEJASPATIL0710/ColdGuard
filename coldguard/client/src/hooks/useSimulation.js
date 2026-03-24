@@ -21,17 +21,17 @@ function createInitialState() {
     mode: 'stable',
     modeLabel: 'Connecting',
     isRunning: true,
-    temperature: 0,
-    batteryLevel: 0,
+    temperature: null,
+    batteryLevel: null,
     batteryIsCharging: false,
     batteryStatusCode: null,
     batteryEstimatedHours: null,
-    solarInput: 0,
-    solarPower: 0,
+    solarInput: null,
+    solarPower: null,
     solarIsGenerating: false,
     solarStatus: null,
     coolingActive: false,
-    ambientTemperature: 0,
+    ambientTemperature: null,
     location: 'Waiting for backend',
     history: [],
     recentSensorReadings: [],
@@ -43,12 +43,12 @@ function createInitialState() {
     eventLog: [],
     lastUpdated: new Date(),
     error: null,
-    temperatureStatus: deriveTemperatureStatus(0),
-    batteryStatus: deriveBatteryStatus(0),
-    backupHours: 0,
-    energyUsage: 0,
-    coolingPerformance: 0,
-    coolingLabel: 'Waiting for backend',
+    temperatureStatus: null,
+    batteryStatus: null,
+    backupHours: null,
+    energyUsage: null,
+    coolingPerformance: null,
+    coolingLabel: null,
     systemHealth: 'Connecting',
     alert: null,
   }
@@ -76,8 +76,9 @@ function normalizeSensorReading(reading) {
   return {
     ...reading,
     recordedAt: reading.recordedAt,
-    temperature: Number(reading.temperature),
-    ambientTemperature: Number(reading.ambientTemperature),
+    temperature: reading.temperature === null ? null : Number(reading.temperature),
+    ambientTemperature:
+      reading.ambientTemperature === null ? null : Number(reading.ambientTemperature),
     batteryLevel: Number.isFinite(batteryLevel) ? batteryLevel : null,
     batteryIsCharging:
       typeof reading.batteryIsCharging === 'boolean'
@@ -107,15 +108,21 @@ function normalizeSimulation(rawState, historyResponse, sensorFeedResponse) {
     normalizeSensorReading(rawState.lastSensorReading) || normalizedRecentSensorReadings[0]
   const latestHistoryPoint = normalizedHistory.at(-1)
   const sensorBatteryLevel = Number(lastSensorReading?.batteryLevel)
-  const temperature = Number(rawState.temperature || 0)
+  const temperature = rawState.temperature === null ? null : Number(rawState.temperature)
   const batteryLevel = Number.isFinite(sensorBatteryLevel)
     ? sensorBatteryLevel
     : latestHistoryPoint
       ? Number(latestHistoryPoint.batteryLevel)
-      : Number(rawState.batteryLevel || 0)
-  const solarInput = Number(rawState.solarInput || 0)
-  const solarPower = Number(rawState.solarPower || lastSensorReading?.solarPower || 0)
-  const ambientTemperature = Number(rawState.ambientTemperature || 0)
+      : rawState.batteryLevel === null
+        ? null
+        : Number(rawState.batteryLevel)
+  const solarInput = rawState.solarInput === null ? null : Number(rawState.solarInput)
+  const solarPower =
+    rawState.solarPower === null || rawState.solarPower === undefined
+      ? lastSensorReading?.solarPower ?? null
+      : Number(rawState.solarPower)
+  const ambientTemperature =
+    rawState.ambientTemperature === null ? null : Number(rawState.ambientTemperature)
   const batteryEstimatedHours = Number(
     rawState.batteryEstimatedHours ?? lastSensorReading?.batteryEstimatedHours,
   )
@@ -131,8 +138,9 @@ function normalizeSimulation(rawState, historyResponse, sensorFeedResponse) {
       : Boolean(lastSensorReading?.solarIsGenerating)
   const solarStatus = rawState.solarStatus || lastSensorReading?.solarStatus || null
   const temperatureStatus =
-    rawState.temperatureStatus || deriveTemperatureStatus(temperature)
-  const derivedBatteryStatus = rawState.batteryStatus || deriveBatteryStatus(batteryLevel)
+    rawState.temperatureStatus || (temperature === null ? null : deriveTemperatureStatus(temperature))
+  const derivedBatteryStatus =
+    rawState.batteryStatus || (batteryLevel === null ? null : deriveBatteryStatus(batteryLevel))
   const batteryStatus = batteryStatusCode
     ? {
         tone:
@@ -149,9 +157,13 @@ function normalizeSimulation(rawState, historyResponse, sensorFeedResponse) {
       ? batteryEstimatedHours
       : rawState.backupHours !== undefined
         ? Number(rawState.backupHours)
-        : estimateBackupHours(batteryLevel)
+        : batteryLevel === null
+          ? null
+          : estimateBackupHours(batteryLevel)
   const energyUsage = Number.isFinite(solarPower) ? solarPower : 0
-  const coolingPerformance = rawState.coolingActive
+  const coolingPerformance = temperature === null
+    ? null
+    : rawState.coolingActive
     ? round(
         rawState.mode === 'failure'
           ? 96
@@ -161,8 +173,9 @@ function normalizeSimulation(rawState, historyResponse, sensorFeedResponse) {
         0,
       )
     : 14
-  const coolingLabel =
-    rawState.mode === 'failure'
+  const coolingLabel = temperature === null
+    ? null
+    : rawState.mode === 'failure'
       ? 'Maximum response'
       : rawState.mode === 'recovery'
         ? 'Recovery load'
@@ -208,7 +221,7 @@ function normalizeSimulation(rawState, historyResponse, sensorFeedResponse) {
     temperatureStatus,
     batteryStatus,
     backupHours,
-    energyUsage,
+    energyUsage: energyUsage === 0 && solarPower === null ? null : energyUsage,
     coolingPerformance,
     coolingLabel,
     systemHealth,

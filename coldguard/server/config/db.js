@@ -204,6 +204,39 @@ async function initializeDatabase() {
       )
     `)
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS esp32_signals (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        temperature DECIMAL(5,2) NOT NULL,
+        trigger_type VARCHAR(32) NOT NULL,
+        cmd VARCHAR(64) NOT NULL,
+        pin VARCHAR(16) NOT NULL,
+        state VARCHAR(8) NOT NULL,
+        pwm TINYINT UNSIGNED NOT NULL DEFAULT 0,
+        duration_ms INT NULL,
+        blink_hz DECIMAL(4,1) NULL,
+        reason VARCHAR(255) NOT NULL
+      )
+    `)
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS gps_locations (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        source VARCHAR(64) NOT NULL,
+        latitude DECIMAL(10, 7) NOT NULL,
+        longitude DECIMAL(10, 7) NOT NULL,
+        accuracy DECIMAL(8, 2) NULL,
+        speed DECIMAL(6, 2) NULL DEFAULT 0,
+        heading DECIMAL(5, 2) NULL DEFAULT 0,
+        address VARCHAR(255) NULL,
+        city VARCHAR(128) NULL,
+        region VARCHAR(128) NULL,
+        country VARCHAR(64) NULL
+      )
+    `)
+
     connectionState.connected = true
     return connectionState
   } catch (error) {

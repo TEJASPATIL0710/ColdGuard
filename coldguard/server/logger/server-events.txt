@@ -1,0 +1,126 @@
+[2026-03-24T22:13:07.809Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-24T22:13:07.817Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-24T22:13:18.479Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-24T22:13:18.489Z] ColdGuard server listening
+{
+  "port": 4021
+}
+[2026-03-24T22:27:52.985Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-24T22:27:52.992Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-24T22:28:01.884Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-24T22:28:01.892Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-24T22:28:06.170Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-24T22:28:06.179Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-24T22:28:10.056Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-24T22:28:10.069Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-24T22:30:15.108Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-24T22:30:15.115Z] ColdGuard server listening
+{
+  "port": 4022
+}
+[2026-03-24T22:30:18.844Z] GPS update emitted
+{
+  "source": "ip-geolocation",
+  "latitude": 15.9088393,
+  "longitude": 73.8346744,
+  "accuracy": 25,
+  "speed": 17.4,
+  "heading": 94.6,
+  "address": "Savantvadi, Maharashtra, India",
+  "city": "Savantvadi",
+  "region": "Maharashtra",
+  "country": "India",
+  "timestamp": "2026-03-24T22:30:18.844Z",
+  "tickCount": 1
+}
+[2026-03-24T22:30:43.870Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-24T22:30:43.880Z] ColdGuard server listening
+{
+  "port": 4023
+}
+[2026-03-24T22:30:47.527Z] GPS update emitted
+{
+  "source": "ip-geolocation",
+  "latitude": 15.9088393,
+  "longitude": 73.8346744,
+  "accuracy": 25,
+  "speed": 17.4,
+  "heading": 94.6,
+  "address": "Savantvadi, Maharashtra, India",
+  "city": "Savantvadi",
+  "region": "Maharashtra",
+  "country": "India",
+  "timestamp": "2026-03-24T22:30:47.527Z",
+  "tickCount": 1
+}
+[2026-03-24T22:46:50.199Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-24T22:46:50.210Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-24T22:54:13.226Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-24T22:54:13.234Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-24T22:54:21.174Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-24T22:54:21.183Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-24T22:55:47.414Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-24T22:55:47.423Z] ColdGuard server listening
+{
+  "port": 4000
+}

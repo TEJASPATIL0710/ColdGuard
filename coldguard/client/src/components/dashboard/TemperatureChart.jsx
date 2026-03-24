@@ -1,20 +1,3 @@
-function formatChartTime(recordedAt) {
-  if (recordedAt === 'placeholder') {
-    return '--:--:--'
-  }
-
-  const date = new Date(recordedAt)
-  const base = new Intl.DateTimeFormat('en-IN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(date)
-  const tenth = Math.floor(date.getMilliseconds() / 100)
-
-  return `${base}.${tenth}`
-}
-
 function getLabelIndexes(length) {
   if (length <= 4) {
     return Array.from({ length }, (_, index) => index)
@@ -32,9 +15,21 @@ function getLabelIndexes(length) {
 }
 
 function TemperatureChart({ history, solarPower, solarIsGenerating, solarStatus, actionTaken }) {
-  const points = history.length
-    ? history.slice(-10)
-    : [{ id: 'placeholder', label: '--:--:--', recordedAt: 'placeholder', temperature: 0 }]
+  if (!history.length) {
+    return (
+      <section className="panel chart-panel">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">Temperature history</p>
+            <h2>Cargo temperature trend</h2>
+          </div>
+        </div>
+        <p className="panel-copy">Waiting for live feed...</p>
+      </section>
+    )
+  }
+
+  const points = history.slice(-10)
   const labelPoints = getLabelIndexes(points.length)
     .map((index) => points[index])
     .filter(Boolean)
@@ -81,7 +76,7 @@ function TemperatureChart({ history, solarPower, solarIsGenerating, solarStatus,
           <div className="chart-labels">
             {labelPoints.map((point, index) => (
               <span key={`${point.id || point.recordedAt || point.label}-${index}`}>
-                {formatChartTime(point.recordedAt)}
+                {point.label}
               </span>
             ))}
           </div>
@@ -100,15 +95,21 @@ function TemperatureChart({ history, solarPower, solarIsGenerating, solarStatus,
       <div className="chart-sensor-strip">
         <div className="chart-sensor-item">
           <span>Solar power</span>
-          <strong>{solarPower.toFixed(1)} W</strong>
+          <strong>
+            {solarPower === null || solarPower === undefined
+              ? 'Awaiting sensor...'
+              : `${solarPower.toFixed(1)} W`}
+          </strong>
         </div>
         <div className="chart-sensor-item">
           <span>Solar state</span>
-          <strong>{solarStatus || (solarIsGenerating ? 'GENERATING' : 'NO_POWER')}</strong>
+          <strong>
+            {solarStatus || (solarIsGenerating ? 'GENERATING' : 'Awaiting sensor...')}
+          </strong>
         </div>
         <div className="chart-sensor-item">
           <span>Last action</span>
-          <strong>{actionTaken || 'monitoring'}</strong>
+          <strong>{actionTaken || 'Awaiting sensor...'}</strong>
         </div>
       </div>
     </section>
