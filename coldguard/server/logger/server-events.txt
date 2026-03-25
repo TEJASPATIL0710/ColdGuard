@@ -124,3 +124,577 @@
 {
   "port": 4000
 }
+[2026-03-25T01:22:58.933Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-25T01:22:58.943Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-25T01:23:11.297Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-25T01:30:50.103Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-25T01:30:50.114Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-25T01:30:51.340Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-25T01:30:51.353Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-25T01:30:53.291Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-25T01:30:53.666Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-25T01:31:07.153Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:31:08.159Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:31:20.287Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:31:21.298Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:31:32.443Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:31:33.457Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:31:44.218Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:31:45.229Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:31:57.432Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:31:58.436Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:32:08.231Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-25T01:32:08.626Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-25T01:32:19.345Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:32:20.357Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:32:31.327Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:32:32.333Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:32:42.927Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:32:43.928Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:32:54.606Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:32:55.615Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:33:06.490Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:33:07.502Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:33:18.285Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:33:19.289Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:33:29.890Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:33:30.891Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:33:41.645Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:33:42.660Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:33:53.327Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:33:54.341Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:34:04.798Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:34:05.806Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:34:16.525Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:34:17.534Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:34:28.205Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:34:29.214Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:34:36.561Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-25T01:34:36.699Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-25T01:34:47.569Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:34:48.570Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:34:59.168Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:35:00.174Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:35:10.656Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:35:11.670Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:35:22.131Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:35:23.141Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:35:33.612Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:35:34.612Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:35:45.062Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:35:46.066Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:35:56.580Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:35:57.592Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:36:08.087Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:36:09.102Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:36:19.600Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:36:20.602Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:36:31.216Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:36:32.223Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:36:42.691Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:36:43.694Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:36:54.173Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:36:55.174Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:37:05.655Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:37:06.670Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:37:17.290Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:37:18.305Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:37:28.809Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:37:29.821Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:37:41.669Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:37:42.679Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:37:53.331Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:37:54.340Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:38:04.976Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:38:05.990Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://broker.hivemq.com:8884",
+  "topic": "temperature"
+}
+[2026-03-25T01:38:12.151Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-25T01:38:12.273Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-25T01:38:22.851Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:38:23.852Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:38:34.309Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:38:35.315Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:38:46.332Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:38:47.334Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:38:57.932Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:38:58.939Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:39:11.250Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:39:12.255Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:39:23.092Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:39:24.099Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:39:34.731Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:39:35.744Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:39:46.205Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:39:47.207Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:39:57.717Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:39:58.724Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:40:09.333Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:40:10.339Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:40:21.661Z] MQTT bridge disconnected
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:40:22.666Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "mqtts://mqtt-dashboard.com:8884",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:40:32.433Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-25T01:40:32.585Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-25T01:40:33.887Z] MQTT bridge connected
+{
+  "brokerUrl": "wss://mqtt-dashboard.com:8884/mqtt",
+  "topic": "smartcooler/data",
+  "clientId": "coldguard-bridge-do8nUGf8ZY"
+}
+[2026-03-25T01:40:34.046Z] MQTT topic subscribed
+{
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:41:06.193Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-25T01:41:06.331Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-25T01:41:09.520Z] MQTT bridge connected
+{
+  "brokerUrl": "wss://mqtt-dashboard.com:8884/mqtt",
+  "topic": "smartcooler/data",
+  "clientId": "coldguard-bridge-do8nUGf8ZY"
+}
+[2026-03-25T01:41:09.669Z] MQTT topic subscribed
+{
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:44:25.609Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-25T01:44:25.763Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-25T01:44:28.060Z] MQTT bridge connected
+{
+  "brokerUrl": "wss://mqtt-dashboard.com:8884/mqtt",
+  "topic": "smartcooler/data",
+  "clientId": "coldguard-bridge-do8nUGf8ZY"
+}
+[2026-03-25T01:44:28.259Z] MQTT topic subscribed
+{
+  "topic": "smartcooler/data"
+}

@@ -280,6 +280,8 @@ export default function useSimulation() {
     }
   }, [])
 
+  
+
   const runAction = async (action) => {
     try {
       await action()

@@ -85,6 +85,39 @@ let state = createInitialState()
 let engineHandle = null
 let engineBusy = false
 let _io = null
+let mqttTemperatureReading = null
+
+function isMqttSource(source) {
+  return typeof source === 'string' && source.startsWith('mqtt:')
+}
+
+function mergePreferredTemperature(sensorReading) {
+  if (isMqttSource(sensorReading.source)) {
+    mqttTemperatureReading = {
+      source: sensorReading.source,
+      temperature: sensorReading.temperature,
+      recordedAt: sensorReading.recordedAt,
+    }
+
+    return {
+      ...sensorReading,
+      temperatureSource: sensorReading.source,
+    }
+  }
+
+  if (!mqttTemperatureReading || !Number.isFinite(mqttTemperatureReading.temperature)) {
+    return {
+      ...sensorReading,
+      temperatureSource: sensorReading.source,
+    }
+  }
+
+  return {
+    ...sensorReading,
+    temperature: mqttTemperatureReading.temperature,
+    temperatureSource: mqttTemperatureReading.source,
+  }
+}
 
 async function pushEvent(message, level = 'info') {
   const event = createLogEntry(message, level)
@@ -481,6 +514,7 @@ async function triggerRecovery() {
 
 async function resetSimulation() {
   state = createInitialState()
+  mqttTemperatureReading = null
   await pushEvent('Simulation reset to baseline transport conditions.')
   await persistStateSnapshot()
   return serializeState()
@@ -556,7 +590,7 @@ async function ingestSensorReading({
     throw new Error('A numeric temperature sensor reading is required.')
   }
 
-  const sensorReading = {
+  const sensorReading = mergePreferredTemperature({
     source,
     temperature: round(Number(temperature), 1),
     ambientTemperature: Number.isFinite(Number(ambientTemperature))
@@ -575,7 +609,7 @@ async function ingestSensorReading({
       typeof solarIsGenerating === 'boolean' ? solarIsGenerating : undefined,
     solarStatus: typeof solarStatus === 'string' ? solarStatus : undefined,
     recordedAt: normalizeRecordedAt(recordedAt),
-  }
+  })
 
   await applySensorReading(sensorReading)
   await persistStateSnapshot()

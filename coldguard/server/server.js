@@ -7,6 +7,7 @@ const { Server } = require('socket.io')
 const { closeDatabase, getConnectionState, initializeDatabase } = require('./config/db')
 const simulationRoutes = require('./routes/simulationRoutes')
 const simulationService = require('./services/simulationService')
+const mqttTemperatureService = require('./services/mqttTemperatureService')
 const logger = require('./logger/fileLogger')
 
 const app = express()
@@ -72,6 +73,7 @@ let server
 
 async function shutdown() {
   simulationService.stopEngine()
+  mqttTemperatureService.stop()
   await closeDatabase()
 
   if (!server) {
@@ -109,6 +111,7 @@ async function bootstrap() {
   }
 
   simulationService.startEngine(io)
+  mqttTemperatureService.start()
 
   server = httpServer.listen(PORT, () => {
     logger.logServerEvent('ColdGuard server listening', { port: PORT })
