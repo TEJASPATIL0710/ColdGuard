@@ -698,3 +698,46 @@
 {
   "topic": "smartcooler/data"
 }
+[2026-03-25T01:50:51.046Z] MQTT bridge offline
+{
+  "brokerUrl": "wss://mqtt-dashboard.com:8884/mqtt",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:50:51.047Z] MQTT bridge disconnected
+{
+  "brokerUrl": "wss://mqtt-dashboard.com:8884/mqtt",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:50:56.057Z] MQTT bridge reconnecting
+{
+  "brokerUrl": "wss://mqtt-dashboard.com:8884/mqtt",
+  "topic": "smartcooler/data"
+}
+[2026-03-25T01:50:57.826Z] MQTT bridge connected
+{
+  "brokerUrl": "wss://mqtt-dashboard.com:8884/mqtt",
+  "topic": "smartcooler/data",
+  "clientId": "coldguard-bridge-do8nUGf8ZY"
+}
+[2026-03-25T01:50:57.826Z] MQTT topic subscribed
+{
+  "topic": "smartcooler/data"
+}
+[2026-03-25T03:13:49.836Z] MySQL connected
+{
+  "database": "coldguard"
+}
+[2026-03-25T03:13:50.019Z] ColdGuard server listening
+{
+  "port": 4000
+}
+[2026-03-25T03:13:52.032Z] MQTT bridge connected
+{
+  "brokerUrl": "wss://mqtt-dashboard.com:8884/mqtt",
+  "topic": "smartcooler/data",
+  "clientId": "coldguard-bridge-do8nUGf8ZY"
+}
+[2026-03-25T03:13:52.196Z] MQTT topic subscribed
+{
+  "topic": "smartcooler/data"
+}
