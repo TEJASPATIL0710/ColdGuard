@@ -129,12 +129,20 @@
 }
 
 .dashboard-lower {
-  grid-template-columns: 1.35fr 1fr;
-  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
 }
 
 .dashboard-lower-compact {
   grid-template-columns: 1.5fr 0.9fr;
+}
+
+.dashboard-column {
+  display: grid;
+  gap: 1.5rem;
+  align-content: start;
 }
 
 .panel {
@@ -426,6 +434,10 @@
   .dashboard-lower,
   .hero-banner {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-column {
+    gap: 1rem;
   }
 }
 

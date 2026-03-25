@@ -203,230 +203,234 @@ function Dashboard() {
       </section>
 
       <section className="dashboard-lower dashboard-lower-compact">
-        <TemperatureChart
-          history={chartHistory}
-          solarPower={simulation.solarPower}
-          solarIsGenerating={simulation.solarIsGenerating}
-          solarStatus={simulation.solarStatus}
-          actionTaken={simulation.lastSensorReading?.actionTaken}
-        />
+        <div className="dashboard-column">
+          <TemperatureChart
+            history={chartHistory}
+            solarPower={simulation.solarPower}
+            solarIsGenerating={simulation.solarIsGenerating}
+            solarStatus={simulation.solarStatus}
+            actionTaken={simulation.lastSensorReading?.actionTaken}
+          />
 
-        <article className="panel">
-          <div className="panel-head">
-            <div>
-              <p className="eyebrow">Hardware telemetry</p>
-              <h2>ESP32 signal feed</h2>
-            </div>
-            <span
-              className={`tone-pill ${
-                signalLog[0]?.triggerType === 'HIGH_TEMP'
-                  ? 'tone-critical'
-                  : signalLog[0]?.triggerType === 'LOW_TEMP'
-                    ? 'tone-warning'
-                    : 'tone-safe'
-              }`}
-            >
-              {signalLog[0]?.triggerType ?? 'WAITING'}
-            </span>
-          </div>
-
-          <div className="sensor-feed-list">
-            {signalLog.length === 0 ? (
-              <p className="panel-copy">Waiting for ESP32 signal packets...</p>
-            ) : (
-              signalLog.slice(0, 5).map((entry, index) => (
-                <div className="sensor-feed-item" key={index}>
-                  <div>
-                    <span>Time</span>
-                    <strong>{new Date(entry.timestamp).toLocaleTimeString('en-IN')}</strong>
-                  </div>
-                  <div>
-                    <span>Trigger</span>
-                    <strong>{entry.triggerType}</strong>
-                  </div>
-                  <div>
-                    <span>Temp</span>
-                    <strong>{entry.temperature} deg C</strong>
-                  </div>
-                  <div>
-                    <span>Commands sent</span>
-                    <strong>{entry.commands.length}</strong>
-                  </div>
-                  {entry.commands
-                    .filter((command) => command.cmd !== 'WATCHDOG_FEED')
-                    .map((command, commandIndex) => (
-                      <div key={commandIndex}>
-                        <span>{command.pin}</span>
-                        <strong>
-                          {`${command.cmd} -> ${command.state}`}
-                          {command.pwm ? ` PWM:${command.pwm}` : ''}
-                        </strong>
-                      </div>
-                    ))}
-                </div>
-              ))
-            )}
-          </div>
-        </article>
-
-        {gpsLocation && (
           <article className="panel">
             <div className="panel-head">
               <div>
-                <p className="eyebrow">Live tracking</p>
-                <h2>Consignment GPS location</h2>
+                <p className="eyebrow">Hardware telemetry</p>
+                <h2>ESP32 signal feed</h2>
               </div>
-              <span className="tone-pill tone-safe">Live</span>
-            </div>
-
-            <div className="summary-grid" style={{ marginBottom: '1rem' }}>
-              <div>
-                <span>City</span>
-                <strong>{gpsLocation.city ?? '-'}</strong>
-              </div>
-              <div>
-                <span>Region</span>
-                <strong>{gpsLocation.region ?? '-'}</strong>
-              </div>
-              <div>
-                <span>Latitude</span>
-                <strong>{Number(gpsLocation.latitude).toFixed(5)}</strong>
-              </div>
-              <div>
-                <span>Longitude</span>
-                <strong>{Number(gpsLocation.longitude).toFixed(5)}</strong>
-              </div>
-              <div>
-                <span>Speed</span>
-                <strong>{gpsLocation.speed ?? 0} km/h</strong>
-              </div>
-              <div>
-                <span>Heading</span>
-                <strong>{gpsLocation.heading ?? 0} deg</strong>
-              </div>
-              <div>
-                <span>Source</span>
-                <strong>{gpsLocation.source ?? '-'}</strong>
-              </div>
-              <div>
-                <span>Last fix</span>
-                <strong>
-                  {gpsLocation.timestamp
-                    ? new Date(gpsLocation.timestamp).toLocaleTimeString('en-IN')
-                    : '-'}
-                </strong>
-              </div>
-            </div>
-
-            <iframe
-              title="GPS Map"
-              width="100%"
-              height="320"
-              style={{ border: 'none', borderRadius: '22px' }}
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${
-                Number(gpsLocation.longitude) - 0.01
-              },${
-                Number(gpsLocation.latitude) - 0.01
-              },${
-                Number(gpsLocation.longitude) + 0.01
-              },${
-                Number(gpsLocation.latitude) + 0.01
-              }&layer=mapnik&marker=${gpsLocation.latitude},${gpsLocation.longitude}`}
-            />
-
-            <p className="panel-copy" style={{ marginTop: '0.5rem' }}>
-              {gpsLocation.address ?? `${gpsLocation.city}, ${gpsLocation.region}`}
-              {' · '}Accuracy ±{gpsLocation.accuracy ?? '-'}m
-              {' · '}{gpsTrail.length} points in trail
-            </p>
-          </article>
-        )}
-
-        <article className="panel summary-panel">
-          <div className="panel-head">
-            <div>
-              <p className="eyebrow">System summary</p>
-              <h2>Live feed overview</h2>
-            </div>
-            <span
-              className={`tone-pill ${
-                simulation.sensorFeedActive ? 'tone-safe' : 'tone-neutral'
-              }`}
-            >
-              {simulation.sensorFeedActive ? 'Sensor mode' : 'Simulated'}
-            </span>
-          </div>
-
-          <div className="summary-grid">
-            <div>
-              <span>Transport mode</span>
-              <strong>{formatSummaryValue(simulation.modeLabel)}</strong>
-            </div>
-            <div>
-              <span>Cooling state</span>
-              <strong>
-                {simulation.temperature === null
-                  ? '-'
-                  : simulation.coolingActive
-                    ? 'ON'
-                    : 'Standby'}
-              </strong>
-            </div>
-            <div>
-              <span>Solar condition</span>
-              <strong>{formatSummaryValue(simulation.solarStatus)}</strong>
-            </div>
-            <div>
-              <span>Sensor source</span>
-              <strong>{formatSummaryValue(sensorSource)}</strong>
-            </div>
-            <div>
-              <span>Last action</span>
-              <strong>{formatSummaryValue(simulation.lastSensorReading?.actionTaken)}</strong>
-            </div>
-            <div>
-              <span>Last packet</span>
-              <strong>{simulation.lastSensorReading?.recordedAt ? lastPacketLabel : '-'}</strong>
-            </div>
-          </div>
-
-          <div className="sensor-feed-strip">
-            <div className="sensor-feed-head">
-              <span>Recent sensor feeds</span>
-              <strong>{simulation.activeSensorCount} tracked</strong>
+              <span
+                className={`tone-pill ${
+                  signalLog[0]?.triggerType === 'HIGH_TEMP'
+                    ? 'tone-critical'
+                    : signalLog[0]?.triggerType === 'LOW_TEMP'
+                      ? 'tone-warning'
+                      : 'tone-safe'
+                }`}
+              >
+                {signalLog[0]?.triggerType ?? 'WAITING'}
+              </span>
             </div>
 
             <div className="sensor-feed-list">
-              {simulation.activeSensors.length > 0 ? (
-                simulation.activeSensors.slice(0, 4).map((sensor) => (
-                  <div className="sensor-feed-item" key={sensor.source}>
+              {signalLog.length === 0 ? (
+                <p className="panel-copy">Waiting for ESP32 signal packets...</p>
+              ) : (
+                signalLog.slice(0, 5).map((entry, index) => (
+                  <div className="sensor-feed-item" key={index}>
                     <div>
-                      <span>{sensor.source}</span>
-                      <strong>{sensor.temperature.toFixed(1)} deg C</strong>
+                      <span>Time</span>
+                      <strong>{new Date(entry.timestamp).toLocaleTimeString('en-IN')}</strong>
                     </div>
                     <div>
-                      <span>Battery</span>
-                      <strong>{formatBatteryValue(sensor.batteryLevel)}</strong>
+                      <span>Trigger</span>
+                      <strong>{entry.triggerType}</strong>
                     </div>
                     <div>
-                      <span>Solar</span>
-                      <strong>{sensor.solarStatus || 'Unavailable'}</strong>
+                      <span>Temp</span>
+                      <strong>{entry.temperature} deg C</strong>
                     </div>
                     <div>
-                      <span>Action</span>
-                      <strong>{sensor.actionTaken || 'monitoring'}</strong>
+                      <span>Commands sent</span>
+                      <strong>{entry.commands.length}</strong>
                     </div>
+                    {entry.commands
+                      .filter((command) => command.cmd !== 'WATCHDOG_FEED')
+                      .map((command, commandIndex) => (
+                        <div key={commandIndex}>
+                          <span>{command.pin}</span>
+                          <strong>
+                            {`${command.cmd} -> ${command.state}`}
+                            {command.pwm ? ` PWM:${command.pwm}` : ''}
+                          </strong>
+                        </div>
+                      ))}
                   </div>
                 ))
-              ) : (
-                <p className="panel-copy">
-                  Waiting for external sensor packets. The dashboard will switch to live
-                  feed mode automatically.
-                </p>
               )}
             </div>
-          </div>
-        </article>
+          </article>
+        </div>
+
+        <div className="dashboard-column">
+          {gpsLocation && (
+            <article className="panel">
+              <div className="panel-head">
+                <div>
+                  <p className="eyebrow">Live tracking</p>
+                  <h2>Consignment GPS location</h2>
+                </div>
+                <span className="tone-pill tone-safe">Live</span>
+              </div>
+
+              <div className="summary-grid" style={{ marginBottom: '1rem' }}>
+                <div>
+                  <span>City</span>
+                  <strong>{gpsLocation.city ?? '-'}</strong>
+                </div>
+                <div>
+                  <span>Region</span>
+                  <strong>{gpsLocation.region ?? '-'}</strong>
+                </div>
+                <div>
+                  <span>Latitude</span>
+                  <strong>{Number(gpsLocation.latitude).toFixed(5)}</strong>
+                </div>
+                <div>
+                  <span>Longitude</span>
+                  <strong>{Number(gpsLocation.longitude).toFixed(5)}</strong>
+                </div>
+                <div>
+                  <span>Speed</span>
+                  <strong>{gpsLocation.speed ?? 0} km/h</strong>
+                </div>
+                <div>
+                  <span>Heading</span>
+                  <strong>{gpsLocation.heading ?? 0} deg</strong>
+                </div>
+                <div>
+                  <span>Source</span>
+                  <strong>{gpsLocation.source ?? '-'}</strong>
+                </div>
+                <div>
+                  <span>Last fix</span>
+                  <strong>
+                    {gpsLocation.timestamp
+                      ? new Date(gpsLocation.timestamp).toLocaleTimeString('en-IN')
+                      : '-'}
+                  </strong>
+                </div>
+              </div>
+
+              <iframe
+                title="GPS Map"
+                width="100%"
+                height="320"
+                style={{ border: 'none', borderRadius: '22px' }}
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${
+                  Number(gpsLocation.longitude) - 0.01
+                },${
+                  Number(gpsLocation.latitude) - 0.01
+                },${
+                  Number(gpsLocation.longitude) + 0.01
+                },${
+                  Number(gpsLocation.latitude) + 0.01
+                }&layer=mapnik&marker=${gpsLocation.latitude},${gpsLocation.longitude}`}
+              />
+
+              <p className="panel-copy" style={{ marginTop: '0.5rem' }}>
+                {gpsLocation.address ?? `${gpsLocation.city}, ${gpsLocation.region}`}
+                {' - '}Accuracy +/-{gpsLocation.accuracy ?? '-'}m
+                {' - '}{gpsTrail.length} points in trail
+              </p>
+            </article>
+          )}
+
+          <article className="panel summary-panel">
+            <div className="panel-head">
+              <div>
+                <p className="eyebrow">System summary</p>
+                <h2>Live feed overview</h2>
+              </div>
+              <span
+                className={`tone-pill ${
+                  simulation.sensorFeedActive ? 'tone-safe' : 'tone-neutral'
+                }`}
+              >
+                {simulation.sensorFeedActive ? 'Sensor mode' : 'Simulated'}
+              </span>
+            </div>
+
+            <div className="summary-grid">
+              <div>
+                <span>Transport mode</span>
+                <strong>{formatSummaryValue(simulation.modeLabel)}</strong>
+              </div>
+              <div>
+                <span>Cooling state</span>
+                <strong>
+                  {simulation.temperature === null
+                    ? '-'
+                    : simulation.coolingActive
+                      ? 'ON'
+                      : 'Standby'}
+                </strong>
+              </div>
+              <div>
+                <span>Solar condition</span>
+                <strong>{formatSummaryValue(simulation.solarStatus)}</strong>
+              </div>
+              <div>
+                <span>Sensor source</span>
+                <strong>{formatSummaryValue(sensorSource)}</strong>
+              </div>
+              <div>
+                <span>Last action</span>
+                <strong>{formatSummaryValue(simulation.lastSensorReading?.actionTaken)}</strong>
+              </div>
+              <div>
+                <span>Last packet</span>
+                <strong>{simulation.lastSensorReading?.recordedAt ? lastPacketLabel : '-'}</strong>
+              </div>
+            </div>
+
+            <div className="sensor-feed-strip">
+              <div className="sensor-feed-head">
+                <span>Recent sensor feeds</span>
+                <strong>{simulation.activeSensorCount} tracked</strong>
+              </div>
+
+              <div className="sensor-feed-list">
+                {simulation.activeSensors.length > 0 ? (
+                  simulation.activeSensors.slice(0, 4).map((sensor) => (
+                    <div className="sensor-feed-item" key={sensor.source}>
+                      <div>
+                        <span>{sensor.source}</span>
+                        <strong>{sensor.temperature.toFixed(1)} deg C</strong>
+                      </div>
+                      <div>
+                        <span>Battery</span>
+                        <strong>{formatBatteryValue(sensor.batteryLevel)}</strong>
+                      </div>
+                      <div>
+                        <span>Solar</span>
+                        <strong>{sensor.solarStatus || 'Unavailable'}</strong>
+                      </div>
+                      <div>
+                        <span>Action</span>
+                        <strong>{sensor.actionTaken || 'monitoring'}</strong>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="panel-copy">
+                    Waiting for external sensor packets. The dashboard will switch to live
+                    feed mode automatically.
+                  </p>
+                )}
+              </div>
+            </div>
+          </article>
+        </div>
       </section>
     </main>
   )
